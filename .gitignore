@@ -1,0 +1,53 @@
+# Environment & Secrets
+.env
+.env.backup
+.env.local
+
+# Dependency Directories
+/vendor/
+/node_modules/
+
+# Testing & Coverage Artifacts
+.phpunit.cache/
+.phpunit.result.cache
+coverage/
+playwright-report/
+test-results/
+
+# Dynamic Storage Contents (preserve .gitkeep files)
+storage/uploads/*
+!storage/uploads/.gitkeep
+storage/logs/*
+!storage/logs/.gitkeep
+storage/cache/*
+!storage/cache/.gitkeep
+*.tmp
+
+# Operating System & IDE Files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# secrets
+.env
+.env.*
+!.env.example
+# dependencies
+vendor/
+node_modules/
+# runtime data
+storage/uploads/*
+!storage/uploads/.gitkeep
+storage/logs/*
+!storage/logs/.gitkeep
+storage/cache/*
+!storage/cache/.gitkeep
+# misc
+.DS_Store
+.phpunit.result.cache
+.phpunit.cache/
+test-results/
+playwright-report/

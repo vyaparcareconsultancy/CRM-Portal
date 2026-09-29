@@ -1,0 +1,246 @@
+:root {
+    --primary: #0284c7;
+    --primary-hover: #0369a1;
+    --primary-light: #f0f9ff;
+    --sidebar-bg: #0f172a;
+    --sidebar-hover: #1e293b;
+    --sidebar-text: #94a3b8;
+    --sidebar-text-active: #ffffff;
+    --sidebar-active-bg: #0284c7;
+    --sidebar-width: 260px;
+    --topbar-height: 64px;
+    --bg-main: #f8fafc;
+    --border-color: #e2e8f0;
+    --text-main: #0f172a;
+    --text-muted: #64748b;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    min-height: 100vh;
+    margin: 0;
+}
+
+/* Layout Container */
+.app-wrapper {
+    display: flex;
+    min-height: 100vh;
+    width: 100%;
+}
+
+/* Sidebar */
+.app-sidebar {
+    width: var(--sidebar-width);
+    background-color: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 1040;
+    transition: transform 0.25s ease-in-out;
+}
+
+.sidebar-header {
+    height: var(--topbar-height);
+    display: flex;
+    align-items: center;
+    padding: 0 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.sidebar-brand {
+    color: #ffffff;
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-decoration: none;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sidebar-brand span.badge-crm {
+    background: var(--primary);
+    font-size: 0.65rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.sidebar-menu {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.25rem 0.75rem;
+    list-style: none;
+    margin: 0;
+}
+
+.menu-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    color: #64748b;
+    padding: 0.5rem 0.75rem 0.25rem;
+    margin-top: 0.5rem;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.65rem 0.85rem;
+    color: var(--sidebar-text);
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 0.925rem;
+    font-weight: 500;
+    transition: all 0.15s ease-in-out;
+    margin-bottom: 0.25rem;
+}
+
+.sidebar-link:hover {
+    color: var(--sidebar-text-active);
+    background-color: var(--sidebar-hover);
+}
+
+.sidebar-link.active {
+    color: var(--sidebar-text-active);
+    background-color: var(--sidebar-active-bg);
+}
+
+.sidebar-footer {
+    padding: 1rem 1.25rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* Main Content Area */
+.app-main {
+    flex: 1;
+    margin-left: var(--sidebar-width);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    transition: margin-left 0.25s ease-in-out;
+}
+
+/* Topbar */
+.app-topbar {
+    height: var(--topbar-height);
+    background-color: #ffffff;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: var(--primary-light);
+    color: var(--primary);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+}
+
+.user-info {
+    line-height: 1.2;
+}
+
+.user-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.user-role {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: capitalize;
+}
+
+/* Content Container */
+.app-content {
+    flex: 1;
+    padding: 1.75rem;
+}
+
+/* Backdrop for Mobile */
+.sidebar-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.6);
+    z-index: 1035;
+}
+
+/* Responsive Behavior */
+@media (max-width: 991.98px) {
+    .app-sidebar {
+        transform: translateX(-100%);
+    }
+
+    .app-sidebar.show {
+        transform: translateX(0);
+    }
+
+    .app-sidebar.show ~ .sidebar-backdrop {
+        display: block;
+    }
+
+    .app-main {
+        margin-left: 0;
+    }
+
+    .app-content {
+        padding: 1.25rem 1rem;
+    }
+}
+
+/* Common Card & Component Styling */
+.card {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.card-header {
+    background-color: #ffffff;
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+}
+
+/* Progress bar loader */
+#topProgressBar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 3px;
+    background: var(--primary);
+    width: 0;
+    z-index: 9999;
+    transition: width 0.2s ease, opacity 0.3s ease;
+    opacity: 0;
+}

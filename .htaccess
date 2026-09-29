@@ -1,0 +1,19 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Block direct access to protected directories outside public
+    RewriteRule ^(app|config|database|storage|tests|vendor)(/.*)?$ - [F,L]
+
+    # Block direct access to hidden files and root project files
+    RewriteRule ^\..*$ - [F,L]
+    RewriteRule ^(composer\.(json|lock)|PROJECT_CONTEXT\.md|README\.md)$ - [F,L]
+
+    # Forward web requests to public/
+    RewriteRule ^$ public/ [L]
+    RewriteRule ^((?!public/).*)$ public/$1 [L]
+</IfModule>
+
+# Fallback protection if mod_rewrite is disabled
+<FilesMatch "^\.|\.(json|lock|md|xml|yml|yaml|ini|sql|env)$">
+    Require all denied
+</FilesMatch>

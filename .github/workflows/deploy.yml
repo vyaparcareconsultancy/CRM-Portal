@@ -1,0 +1,148 @@
+name: Continuous Deployment (CD)
+
+on:
+  push:
+    branches:
+      - develop  # Deploys to Staging
+      - main     # Deploys to Production
+  workflow_dispatch:
+    inputs:
+      target_env:
+        description: 'Target deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && inputs.target_env == 'staging')
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH Authentication
+        env:
+          SSH_KEY: ${{ secrets.STAGING_SSH_KEY || secrets.SSH_KEY }}
+          SSH_HOST: ${{ secrets.STAGING_SSH_HOST || secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.STAGING_SSH_PORT || secrets.SSH_PORT || '22' }}
+        run: |
+          if [ -z "$SSH_KEY" ] || [ -z "$SSH_HOST" ]; then
+            echo "::error::SSH_KEY or SSH_HOST secret is missing. Check repository secrets."
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+      - name: Execute Zero-Downtime Deployment
+        env:
+          SSH_HOST: ${{ secrets.STAGING_SSH_HOST || secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.STAGING_SSH_USER || secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.STAGING_SSH_PORT || secrets.SSH_PORT || '22' }}
+          DEPLOY_PATH: ${{ secrets.STAGING_DEPLOY_PATH || secrets.DEPLOY_PATH || '/var/www/crm-staging' }}
+        run: |
+          RELEASE_TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          RELEASE_DIR="$DEPLOY_PATH/releases/$RELEASE_TIMESTAMP"
+          echo "=================================================="
+          echo "Deploying Staging Release: $RELEASE_TIMESTAMP"
+          echo "Host: $SSH_HOST:$SSH_PORT | User: $SSH_USER"
+          echo "Path: $DEPLOY_PATH"
+          echo "=================================================="
+
+          # 1. Create remote release directory
+          ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+            "mkdir -p $RELEASE_DIR $DEPLOY_PATH/shared/storage/{uploads,logs,cache} $DEPLOY_PATH/scripts"
+
+          # 2. Rsync application source to the isolated release directory
+          rsync -avz --delete \
+            --exclude='.git*' \
+            --exclude='.github' \
+            --exclude='tests' \
+            --exclude='node_modules' \
+            --exclude='playwright-report' \
+            --exclude='test-results' \
+            --exclude='storage/uploads/*' \
+            --exclude='storage/logs/*' \
+            --exclude='storage/cache/*' \
+            --exclude='.env*' \
+            -e "ssh -p $SSH_PORT" \
+            ./ "$SSH_USER@$SSH_HOST:$RELEASE_DIR/"
+
+          # 3. Execute remote provisioning & atomic symlink swap
+          ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+            "bash $RELEASE_DIR/scripts/deploy_remote.sh $DEPLOY_PATH $RELEASE_DIR"
+
+  deploy-production:
+    name: Deploy to Production
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.target_env == 'production')
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH Authentication
+        env:
+          SSH_KEY: ${{ secrets.PROD_SSH_KEY || secrets.SSH_KEY }}
+          SSH_HOST: ${{ secrets.PROD_SSH_HOST || secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.PROD_SSH_PORT || secrets.SSH_PORT || '22' }}
+        run: |
+          if [ -z "$SSH_KEY" ] || [ -z "$SSH_HOST" ]; then
+            echo "::error::SSH_KEY or SSH_HOST secret is missing. Check repository secrets."
+            exit 1
+          fi
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p "$SSH_PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+      - name: Execute Zero-Downtime Deployment
+        env:
+          SSH_HOST: ${{ secrets.PROD_SSH_HOST || secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.PROD_SSH_USER || secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.PROD_SSH_PORT || secrets.SSH_PORT || '22' }}
+          DEPLOY_PATH: ${{ secrets.PROD_DEPLOY_PATH || secrets.DEPLOY_PATH || '/var/www/crm' }}
+        run: |
+          RELEASE_TIMESTAMP=$(date +%Y%m%d%H%M%S)
+          RELEASE_DIR="$DEPLOY_PATH/releases/$RELEASE_TIMESTAMP"
+          echo "=================================================="
+          echo "Deploying Production Release: $RELEASE_TIMESTAMP"
+          echo "Host: $SSH_HOST:$SSH_PORT | User: $SSH_USER"
+          echo "Path: $DEPLOY_PATH"
+          echo "=================================================="
+
+          # 1. Create remote release directory
+          ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+            "mkdir -p $RELEASE_DIR $DEPLOY_PATH/shared/storage/{uploads,logs,cache} $DEPLOY_PATH/scripts"
+
+          # 2. Rsync application source to the isolated release directory
+          rsync -avz --delete \
+            --exclude='.git*' \
+            --exclude='.github' \
+            --exclude='tests' \
+            --exclude='node_modules' \
+            --exclude='playwright-report' \
+            --exclude='test-results' \
+            --exclude='storage/uploads/*' \
+            --exclude='storage/logs/*' \
+            --exclude='storage/cache/*' \
+            --exclude='.env*' \
+            -e "ssh -p $SSH_PORT" \
+            ./ "$SSH_USER@$SSH_HOST:$RELEASE_DIR/"
+
+          # 3. Execute remote provisioning & atomic symlink swap
+          ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \
+            "bash $RELEASE_DIR/scripts/deploy_remote.sh $DEPLOY_PATH $RELEASE_DIR"

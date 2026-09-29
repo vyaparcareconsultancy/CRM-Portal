@@ -1,0 +1,18 @@
+CREATE TABLE IF NOT EXISTS `users` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `role_id` BIGINT UNSIGNED NOT NULL,
+    `name` VARCHAR(150) NOT NULL,
+    `email` VARCHAR(191) NOT NULL UNIQUE,
+    `mobile` VARCHAR(20) NULL DEFAULT NULL,
+    `password_hash` VARCHAR(255) NOT NULL,
+    `is_active` TINYINT(1) NOT NULL DEFAULT 1,
+    `last_login_at` DATETIME NULL DEFAULT NULL,
+    `failed_attempts` INT UNSIGNED NOT NULL DEFAULT 0,
+    `locked_until` DATETIME NULL DEFAULT NULL,
+    `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `deleted_at` DATETIME NULL DEFAULT NULL,
+    CONSTRAINT `fk_users_role` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
+    INDEX `idx_users_role_id` (`role_id`),
+    INDEX `idx_users_deleted_at` (`deleted_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
