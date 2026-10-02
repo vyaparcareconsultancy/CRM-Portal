@@ -150,39 +150,52 @@ try {
         }
     }
 
-    // 4. Seed Default Admin User
-    echo "Seeding default admin user ({$adminEmail})..." . PHP_EOL;
+    // 4. Seed Default Admin User (skip if any active admin already exists)
     $adminRoleId = (int)$roleIds['admin'];
-    $passwordHash = password_hash($adminPassword, PASSWORD_DEFAULT);
 
-    $findUserStmt = $pdo->prepare("SELECT `id` FROM `users` WHERE `email` = ?");
-    $findUserStmt->execute([$adminEmail]);
-    $existingAdminId = $findUserStmt->fetchColumn();
+    $checkAdminStmt = $pdo->prepare("
+        SELECT COUNT(*) 
+        FROM `users` 
+        WHERE `role_id` = ? AND `is_active` = 1 AND `deleted_at` IS NULL
+    ");
+    $checkAdminStmt->execute([$adminRoleId]);
+    $activeAdminCount = (int)$checkAdminStmt->fetchColumn();
 
-    if ($existingAdminId) {
-        $updateUserStmt = $pdo->prepare("
-            UPDATE `users`
-            SET `role_id` = ?,
-                `password_hash` = ?,
-                `is_active` = 1,
-                `deleted_at` = NULL
-            WHERE `id` = ?
-        ");
-        $updateUserStmt->execute([$adminRoleId, $passwordHash, $existingAdminId]);
-        echo "Admin user updated successfully (ID: {$existingAdminId})." . PHP_EOL;
+    if ($activeAdminCount > 0) {
+        echo "Active admin already exists ({$activeAdminCount} found). Skipping default admin creation." . PHP_EOL;
     } else {
-        $insertUserStmt = $pdo->prepare("
-            INSERT INTO `users` (`role_id`, `name`, `email`, `password_hash`, `is_active`)
-            VALUES (?, ?, ?, ?, 1)
-        ");
-        $insertUserStmt->execute([
-            $adminRoleId,
-            'System Administrator',
-            $adminEmail,
-            $passwordHash,
-        ]);
-        $newAdminId = $pdo->lastInsertId();
-        echo "Admin user created successfully (ID: {$newAdminId})." . PHP_EOL;
+        echo "No active admin found. Seeding default admin user ({$adminEmail})..." . PHP_EOL;
+        $passwordHash = password_hash($adminPassword, PASSWORD_DEFAULT);
+
+        $findUserStmt = $pdo->prepare("SELECT `id` FROM `users` WHERE `email` = ?");
+        $findUserStmt->execute([$adminEmail]);
+        $existingAdminId = $findUserStmt->fetchColumn();
+
+        if ($existingAdminId) {
+            $updateUserStmt = $pdo->prepare("
+                UPDATE `users`
+                SET `role_id` = ?,
+                    `password_hash` = ?,
+                    `is_active` = 1,
+                    `deleted_at` = NULL
+                WHERE `id` = ?
+            ");
+            $updateUserStmt->execute([$adminRoleId, $passwordHash, $existingAdminId]);
+            echo "Admin user updated successfully (ID: {$existingAdminId})." . PHP_EOL;
+        } else {
+            $insertUserStmt = $pdo->prepare("
+                INSERT INTO `users` (`role_id`, `name`, `email`, `password_hash`, `is_active`)
+                VALUES (?, ?, ?, ?, 1)
+            ");
+            $insertUserStmt->execute([
+                $adminRoleId,
+                'System Administrator',
+                $adminEmail,
+                $passwordHash,
+            ]);
+            $newAdminId = $pdo->lastInsertId();
+            echo "Admin user created successfully (ID: {$newAdminId})." . PHP_EOL;
+        }
     }
 
     echo PHP_EOL . "Seeding completed successfully!" . PHP_EOL;

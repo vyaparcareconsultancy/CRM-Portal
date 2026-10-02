@@ -137,6 +137,7 @@ php -S localhost:8000 -t public          # Start dev server
 # Database
 php database/migrate.php                 # Run all migrations
 php database/seeds/seed.php              # Seed admin user + roles
+php scripts/reset_local_data.php         # Clean demo/test data (local dev only)
 
 # Cron Jobs (add to crontab in production)
 php cron/worker.php                      # Process job queue (every minute)

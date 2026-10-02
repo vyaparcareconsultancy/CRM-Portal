@@ -30,6 +30,8 @@ $router->get('/api/auth/me', [AuthController::class, 'me'], ['throttle:120,1', A
 $router->get('/api/users', [\App\Controllers\UserController::class, 'index'], ['throttle:120,1', 'perm:user.manage']);
 $router->post('/api/users', [\App\Controllers\UserController::class, 'store'], ['throttle:120,1', 'perm:user.manage']);
 $router->put('/api/users/{id}', [\App\Controllers\UserController::class, 'update'], ['throttle:120,1', 'perm:user.manage']);
+$router->delete('/api/users/{id}', [\App\Controllers\UserController::class, 'destroy'], ['throttle:120,1', 'perm:user.manage']);
+$router->get('/api/roles', [\App\Controllers\UserController::class, 'roles'], ['throttle:120,1', 'perm:user.manage']);
 
 // Client API Endpoints
 $router->get('/api/clients/export', [\App\Controllers\ClientController::class, 'export'], ['throttle:120,1', 'throttle:10,60,export', AuthMiddleware::class, 'perm:client.export']);
@@ -224,9 +226,12 @@ $router->get('/followups', static function (): void {
 }, [AuthMiddleware::class]);
 
 $router->get('/users', static function (): void {
+    $userService = new \App\Services\UserService();
     Response::view('users/index', [
         'title' => 'Users Administration — CRM Portal',
         'pageHeading' => 'Users',
+        'roles' => $userService->getRoles(),
+        'currentUserId' => (int)\App\Core\Session::get('user_id'),
     ]);
 }, [AuthMiddleware::class, 'perm:user.manage']);
 

@@ -142,6 +142,8 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
     <script src="<?= asset('/assets/js/client-edit.js') ?>"></script>
     <?php elseif ($currentPath === '/clients/create'): ?>
     <script src="<?= asset('/assets/js/client-form.js') ?>"></script>
+    <?php elseif ($currentPath === '/users'): ?>
+    <script src="<?= asset('/assets/js/users.js') ?>"></script>
     <?php endif; ?>
     <?php if (!empty($pageScript)): ?>
     <script src="<?= asset($pageScript) ?>"></script>
