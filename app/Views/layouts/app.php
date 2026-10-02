@@ -41,6 +41,16 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
                     </a>
                 </li>
 
+                <?php if (can('lead.view')): ?>
+                <li class="menu-label">Leads</li>
+                <li>
+                    <a href="/leads" class="sidebar-link <?= $currentPath === '/leads' ? 'active' : '' ?>">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                        <span>Leads Pipeline</span>
+                    </a>
+                </li>
+                <?php endif; ?>
+
                 <li class="menu-label">Clients</li>
                 <li>
                     <a href="/clients" class="sidebar-link <?= $currentPath === '/clients' ? 'active' : '' ?>">
@@ -134,6 +144,8 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
     <!-- Page Specific Scripts -->
     <?php if ($currentPath === '/dashboard' || $currentPath === '/'): ?>
     <script src="<?= asset('/assets/js/dashboard.js') ?>"></script>
+    <?php elseif ($currentPath === '/leads'): ?>
+    <script src="<?= asset('/assets/js/leads.js') ?>"></script>
     <?php elseif ($currentPath === '/clients'): ?>
     <script src="<?= asset('/assets/js/clients.js') ?>"></script>
     <?php elseif (preg_match('#^/clients/\d+$#', $currentPath)): ?>

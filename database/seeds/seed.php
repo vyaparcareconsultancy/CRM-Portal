@@ -61,6 +61,7 @@ try {
         ['name' => 'admin', 'label' => 'Administrator'],
         ['name' => 'manager', 'label' => 'Manager'],
         ['name' => 'sales', 'label' => 'Sales Representative'],
+        ['name' => 'counselor', 'label' => 'Counselor'],
     ];
 
     $roleStmt = $pdo->prepare("
@@ -87,6 +88,11 @@ try {
         ['name' => 'client.export', 'label' => 'Export Clients'],
         ['name' => 'user.manage', 'label' => 'Manage Users & Roles'],
         ['name' => 'followup.manage', 'label' => 'Manage Follow-ups'],
+        ['name' => 'lead.view', 'label' => 'View Leads'],
+        ['name' => 'lead.view_all', 'label' => 'View All Leads'],
+        ['name' => 'lead.manage', 'label' => 'Manage Leads'],
+        ['name' => 'lead.convert', 'label' => 'Convert Leads'],
+        ['name' => 'lead_source.manage', 'label' => 'Manage Lead Sources'],
     ];
 
     $permStmt = $pdo->prepare("
@@ -114,6 +120,11 @@ try {
             'client.export',
             'user.manage',
             'followup.manage',
+            'lead.view',
+            'lead.view_all',
+            'lead.manage',
+            'lead.convert',
+            'lead_source.manage',
         ],
         'manager' => [
             'client.create',
@@ -122,6 +133,10 @@ try {
             'client.delete',
             'client.export',
             'followup.manage',
+            'lead.view',
+            'lead.view_all',
+            'lead.manage',
+            'lead.convert',
         ],
         'sales' => [
             'client.create',
@@ -129,6 +144,15 @@ try {
             'client.edit',
             'client.export',
             'followup.manage',
+            'lead.view',
+            'lead.manage',
+        ],
+        'counselor' => [
+            'client.create',
+            'followup.manage',
+            'lead.view',
+            'lead.manage',
+            'lead.convert',
         ],
     ];
 

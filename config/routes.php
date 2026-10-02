@@ -46,6 +46,23 @@ $router->get('/api/clients/{id}/documents/{docId}', [\App\Controllers\ClientCont
 $router->delete('/api/clients/{id}/documents/{docId}', [\App\Controllers\ClientController::class, 'destroyDocument'], ['throttle:120,1', AuthMiddleware::class, 'perm:client.edit']);
 $router->get('/api/lookups', [\App\Controllers\ClientController::class, 'lookups'], ['throttle:120,1', AuthMiddleware::class]);
 
+// Lead API Endpoints
+$router->get('/api/leads/lookups', [\App\Controllers\LeadController::class, 'lookups'], ['throttle:120,1', AuthMiddleware::class]);
+$router->post('/api/leads/import', [\App\Controllers\LeadController::class, 'importCsv'], ['throttle:60,1', AuthMiddleware::class, 'perm:lead.manage']);
+$router->get('/api/leads', [\App\Controllers\LeadController::class, 'index'], ['throttle:120,1', AuthMiddleware::class, 'perm:lead.view']);
+$router->post('/api/leads', [\App\Controllers\LeadController::class, 'store'], ['throttle:120,1', AuthMiddleware::class, 'perm:lead.manage']);
+$router->get('/api/leads/{id}', [\App\Controllers\LeadController::class, 'show'], ['throttle:120,1', AuthMiddleware::class, 'perm:lead.view']);
+$router->put('/api/leads/{id}', [\App\Controllers\LeadController::class, 'update'], ['throttle:120,1', AuthMiddleware::class, 'perm:lead.manage']);
+$router->post('/api/leads/{id}/status', [\App\Controllers\LeadController::class, 'updateStatus'], ['throttle:120,1', AuthMiddleware::class, 'perm:lead.manage']);
+$router->post('/api/leads/{id}/convert', [\App\Controllers\LeadController::class, 'convert'], ['throttle:120,1', AuthMiddleware::class, 'perm:lead.convert']);
+$router->get('/api/leads/{id}/followups', [\App\Controllers\FollowUpController::class, 'leadFollowups'], ['throttle:120,1', AuthMiddleware::class, 'perm:lead.view']);
+$router->post('/api/leads/{id}/followups', [\App\Controllers\FollowUpController::class, 'store'], ['throttle:120,1', AuthMiddleware::class, 'perm:followup.manage']);
+
+// Lead Source API Endpoints
+$router->get('/api/lead-sources', [\App\Controllers\LeadSourceController::class, 'index'], ['throttle:120,1', AuthMiddleware::class]);
+$router->post('/api/lead-sources', [\App\Controllers\LeadSourceController::class, 'store'], ['throttle:120,1', AuthMiddleware::class, 'perm:lead_source.manage']);
+$router->put('/api/lead-sources/{id}', [\App\Controllers\LeadSourceController::class, 'update'], ['throttle:120,1', AuthMiddleware::class, 'perm:lead_source.manage']);
+
 // Follow-up API Endpoints
 $router->get('/api/followups', [\App\Controllers\FollowUpController::class, 'index'], ['throttle:120,1', AuthMiddleware::class]);
 $router->post('/api/followups', [\App\Controllers\FollowUpController::class, 'store'], ['throttle:120,1', AuthMiddleware::class, 'perm:followup.manage']);
@@ -70,6 +87,25 @@ $router->get('/api/staff', static function (): void {
 // Dashboard API & View
 $router->get('/api/dashboard/stats', [\App\Controllers\DashboardController::class, 'stats'], ['throttle:120,1', AuthMiddleware::class]);
 $router->get('/dashboard', [\App\Controllers\DashboardController::class, 'index'], [AuthMiddleware::class]);
+
+// Leads Page
+$router->get('/leads', static function (): void {
+    $canManage = \App\Services\PermissionService::can('lead.manage');
+    $canConvert = \App\Services\PermissionService::can('lead.convert');
+    $canManageSources = \App\Services\PermissionService::can('lead_source.manage');
+    $canViewAll = \App\Services\PermissionService::can('lead.view_all');
+    $currentUserId = (int)\App\Core\Session::get('user_id');
+
+    Response::view('leads/index', [
+        'title' => 'Leads Pipeline — CRM Portal',
+        'pageHeading' => 'Leads Pipeline',
+        'canManage' => $canManage,
+        'canConvert' => $canConvert,
+        'canManageSources' => $canManageSources,
+        'canViewAll' => $canViewAll,
+        'currentUserId' => $currentUserId,
+    ]);
+}, [AuthMiddleware::class, 'perm:lead.view']);
 
 $router->get('/clients', static function (): void {
     Response::view('clients/index', [

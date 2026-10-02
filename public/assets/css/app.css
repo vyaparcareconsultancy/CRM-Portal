@@ -244,3 +244,103 @@ body {
     transition: width 0.2s ease, opacity 0.3s ease;
     opacity: 0;
 }
+
+/* Kanban Board Styling */
+.kanban-board {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    padding-bottom: 1.5rem;
+    align-items: flex-start;
+    min-height: 520px;
+}
+
+.kanban-column {
+    flex: 0 0 290px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    max-height: 82vh;
+}
+
+.kanban-column-header {
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #ffffff;
+    border-top-left-radius: 7px;
+    border-top-right-radius: 7px;
+}
+
+.kanban-cards {
+    padding: 0.75rem;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 150px;
+    transition: background-color 0.2s ease, outline 0.2s ease;
+}
+
+.kanban-cards.drag-over {
+    background-color: #f1f5f9;
+    outline: 2px dashed var(--primary);
+    border-radius: 6px;
+}
+
+.kanban-card {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 0.85rem;
+    margin-bottom: 0.75rem;
+    cursor: grab;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    user-select: none;
+}
+
+.kanban-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08);
+}
+
+.kanban-card.dragging {
+    opacity: 0.4;
+    cursor: grabbing;
+}
+
+/* Quick Communication Action Buttons */
+.btn-whatsapp {
+    background-color: #25d366;
+    color: #ffffff;
+    border: none;
+}
+
+.btn-whatsapp:hover, .btn-whatsapp:focus {
+    background-color: #128c7e;
+    color: #ffffff;
+}
+
+.btn-call {
+    background-color: #0284c7;
+    color: #ffffff;
+    border: none;
+}
+
+.btn-call:hover, .btn-call:focus {
+    background-color: #0369a1;
+    color: #ffffff;
+}
+
+.lead-status-new { border-top: 3px solid #0284c7; }
+.lead-status-contacted { border-top: 3px solid #06b6d4; }
+.lead-status-interested { border-top: 3px solid #f59e0b; }
+.lead-status-follow_up { border-top: 3px solid #8b5cf6; }
+.lead-status-converted { border-top: 3px solid #10b981; }
+.lead-status-lost { border-top: 3px solid #ef4444; }
+

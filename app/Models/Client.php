@@ -560,4 +560,19 @@ class Client extends BaseModel
         $stmt->execute([$monthStart]);
         return $stmt->fetchAll();
     }
+
+    /**
+     * Find client by mobile number.
+     */
+    public function findByMobile(string $mobile): ?array
+    {
+        $clean = preg_replace('/[^0-9]/', '', $mobile);
+        $stmt = $this->getPdo()->prepare("SELECT * FROM `{$this->table}` WHERE `mobile` = ? AND `deleted_at` IS NULL LIMIT 1");
+        $stmt->execute([$clean]);
+        $row = $stmt->fetch();
+        if ($row !== false && isset($row['pan_no'])) {
+            $row['pan_no'] = Crypto::decryptPan($row['pan_no']);
+        }
+        return $row !== false ? $row : null;
+    }
 }

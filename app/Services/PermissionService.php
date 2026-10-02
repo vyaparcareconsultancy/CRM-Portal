@@ -96,6 +96,12 @@ class PermissionService
         Session::remove(self::SESSION_PERM_KEY);
         Session::remove(self::SESSION_ROLE_KEY);
     }
+
+    public static function loadUserPermissions(?int $userId = null, mixed $extra = null): array
+    {
+        self::refresh();
+        return self::getPermissions($userId);
+    }
 }
 
 // Global view helper function for template permission checks

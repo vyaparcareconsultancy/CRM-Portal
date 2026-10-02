@@ -71,6 +71,27 @@ class FollowUpController
     }
 
     /**
+     * List follow-ups for a specific lead.
+     * GET /api/leads/{id}/followups
+     */
+    public function leadFollowups(array $params): void
+    {
+        $leadId = (int)($params['id'] ?? 0);
+        if ($leadId <= 0) {
+            Response::error('Invalid lead ID', 400);
+            return;
+        }
+
+        try {
+            $items = $this->service->getByLead($leadId);
+            Response::success($items);
+        } catch (Throwable $e) {
+            $code = $e->getCode() >= 400 && $e->getCode() < 600 ? (int)$e->getCode() : 500;
+            Response::error($e->getMessage(), $code);
+        }
+    }
+
+    /**
      * Get single follow-up.
      * GET /api/followups/{id}
      */

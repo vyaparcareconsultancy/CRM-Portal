@@ -5,30 +5,79 @@ declare(strict_types=1);
 namespace App\Models;
 
 use PDO;
+use Throwable;
 
 class FollowUp extends BaseModel
 {
     protected string $table = 'follow_ups';
     protected bool $softDelete = true;
 
+    private ?bool $leadsTableExists = null;
+
+    private function hasLeadsTable(): bool
+    {
+        if ($this->leadsTableExists !== null) {
+            return $this->leadsTableExists;
+        }
+        try {
+            $this->getPdo()->query("SELECT 1 FROM `leads` LIMIT 1");
+            $this->leadsTableExists = true;
+        } catch (Throwable) {
+            $this->leadsTableExists = false;
+        }
+        return $this->leadsTableExists;
+    }
+
     /**
-     * Find single follow-up with client and user details, enforcing scoping.
+     * Find single follow-up with client/lead and user details, enforcing scoping.
      */
     public function findScoped(int|string $id, int $userId, bool $viewAll): ?array
     {
-        $sql = "SELECT f.*, 
-                       c.name AS client_name, c.client_code, c.assigned_to AS client_assigned_to,
-                       u.name AS user_name, u.email AS user_email
-                FROM `{$this->table}` f
-                JOIN `clients` c ON f.client_id = c.id
-                LEFT JOIN `users` u ON f.user_id = u.id
-                WHERE f.id = ? AND f.deleted_at IS NULL AND c.deleted_at IS NULL";
-        $params = [$id];
+        $hasLeads = $this->hasLeadsTable();
 
-        if (!$viewAll) {
-            $sql .= " AND (c.assigned_to = ? OR f.user_id = ?)";
-            $params[] = $userId;
-            $params[] = $userId;
+        if ($hasLeads) {
+            $sql = "SELECT f.*, 
+                           c.name AS client_name, c.client_code, c.mobile AS client_mobile, c.assigned_to AS client_assigned_to,
+                           l.name AS lead_name, l.lead_code, l.mobile AS lead_mobile, l.assigned_to AS lead_assigned_to,
+                           COALESCE(c.name, l.name) AS contact_name,
+                           COALESCE(c.client_code, l.lead_code) AS contact_code,
+                           COALESCE(c.whatsapp_number, l.whatsapp_number, c.mobile, l.mobile) AS contact_whatsapp,
+                           COALESCE(c.mobile, l.mobile) AS contact_mobile,
+                           CASE WHEN f.lead_id IS NOT NULL THEN 'lead' ELSE 'client' END AS entity_type,
+                           u.name AS user_name, u.email AS user_email
+                    FROM `{$this->table}` f
+                    LEFT JOIN `clients` c ON f.client_id = c.id
+                    LEFT JOIN `leads` l ON f.lead_id = l.id
+                    LEFT JOIN `users` u ON f.user_id = u.id
+                    WHERE f.id = ? AND f.deleted_at IS NULL 
+                      AND (c.id IS NULL OR c.deleted_at IS NULL)
+                      AND (l.id IS NULL OR l.deleted_at IS NULL)";
+            $params = [$id];
+
+            if (!$viewAll) {
+                $sql .= " AND (c.assigned_to = ? OR l.assigned_to = ? OR f.user_id = ?)";
+                $params[] = $userId;
+                $params[] = $userId;
+                $params[] = $userId;
+            }
+        } else {
+            $sql = "SELECT f.*, 
+                           c.name AS client_name, c.client_code, c.assigned_to AS client_assigned_to,
+                           c.name AS contact_name, c.client_code AS contact_code,
+                           c.mobile AS contact_mobile, c.mobile AS contact_whatsapp,
+                           'client' AS entity_type,
+                           u.name AS user_name, u.email AS user_email
+                    FROM `{$this->table}` f
+                    JOIN `clients` c ON f.client_id = c.id
+                    LEFT JOIN `users` u ON f.user_id = u.id
+                    WHERE f.id = ? AND f.deleted_at IS NULL AND c.deleted_at IS NULL";
+            $params = [$id];
+
+            if (!$viewAll) {
+                $sql .= " AND (c.assigned_to = ? OR f.user_id = ?)";
+                $params[] = $userId;
+                $params[] = $userId;
+            }
         }
 
         $stmt = $this->getPdo()->prepare($sql . " LIMIT 1");
@@ -45,6 +94,9 @@ class FollowUp extends BaseModel
     {
         $sql = "SELECT f.*, 
                        c.name AS client_name, c.client_code, c.assigned_to AS client_assigned_to,
+                       c.name AS contact_name, c.client_code AS contact_code,
+                       c.mobile AS contact_mobile,
+                       'client' AS entity_type,
                        u.name AS user_name, u.email AS user_email
                 FROM `{$this->table}` f
                 JOIN `clients` c ON f.client_id = c.id
@@ -62,11 +114,45 @@ class FollowUp extends BaseModel
 
         $stmt = $this->getPdo()->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll();
+        return $stmt->fetchAll() ?: [];
     }
 
     /**
-     * Search and list follow-ups with tab, type, client filters and scoping.
+     * Get all follow-ups for a specific lead, scoped by user permissions.
+     */
+    public function getByLead(int|string $leadId, int $userId, bool $viewAll): array
+    {
+        if (!$this->hasLeadsTable()) {
+            return [];
+        }
+
+        $sql = "SELECT f.*, 
+                       l.name AS lead_name, l.lead_code, l.assigned_to AS lead_assigned_to,
+                       l.name AS contact_name, l.lead_code AS contact_code,
+                       l.mobile AS contact_mobile,
+                       'lead' AS entity_type,
+                       u.name AS user_name, u.email AS user_email
+                FROM `{$this->table}` f
+                JOIN `leads` l ON f.lead_id = l.id
+                LEFT JOIN `users` u ON f.user_id = u.id
+                WHERE f.lead_id = ? AND f.deleted_at IS NULL AND l.deleted_at IS NULL";
+        $params = [$leadId];
+
+        if (!$viewAll) {
+            $sql .= " AND (l.assigned_to = ? OR f.user_id = ?)";
+            $params[] = $userId;
+            $params[] = $userId;
+        }
+
+        $sql .= " ORDER BY f.due_at DESC, f.id DESC";
+
+        $stmt = $this->getPdo()->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll() ?: [];
+    }
+
+    /**
+     * Search and list follow-ups with tab, type, client/lead filters and scoping.
      *
      * @return array{items: array, total: int, counts: array<string, int>, page: int, per_page: int}
      */
@@ -83,15 +169,34 @@ class FollowUp extends BaseModel
         $now = date('Y-m-d H:i:s');
         $todayStart = date('Y-m-d 00:00:00');
         $todayEnd = date('Y-m-d 23:59:59');
+        $hasLeads = $this->hasLeadsTable();
 
-        $where = ["f.deleted_at IS NULL", "c.deleted_at IS NULL"];
+        $where = ["f.deleted_at IS NULL"];
         $params = [];
 
-        // Scoping
-        if (!$viewAll) {
-            $where[] = "(c.assigned_to = ? OR f.user_id = ?)";
-            $params[] = $userId;
-            $params[] = $userId;
+        if ($hasLeads) {
+            $where[] = "(c.id IS NULL OR c.deleted_at IS NULL)";
+            $where[] = "(l.id IS NULL OR l.deleted_at IS NULL)";
+            $where[] = "(f.client_id IS NOT NULL OR f.lead_id IS NOT NULL)";
+
+            if (!$viewAll) {
+                $where[] = "(c.assigned_to = ? OR l.assigned_to = ? OR f.user_id = ?)";
+                $params[] = $userId;
+                $params[] = $userId;
+                $params[] = $userId;
+            }
+
+            if (!empty($filters['lead_id'])) {
+                $where[] = "f.lead_id = ?";
+                $params[] = (int)$filters['lead_id'];
+            }
+        } else {
+            $where[] = "c.deleted_at IS NULL";
+            if (!$viewAll) {
+                $where[] = "(c.assigned_to = ? OR f.user_id = ?)";
+                $params[] = $userId;
+                $params[] = $userId;
+            }
         }
 
         // Specific client filter
@@ -101,7 +206,7 @@ class FollowUp extends BaseModel
         }
 
         // Specific type filter
-        if (!empty($filters['type']) && in_array($filters['type'], ['call', 'meeting', 'email'], true)) {
+        if (!empty($filters['type'])) {
             $where[] = "f.type = ?";
             $params[] = $filters['type'];
         }
@@ -110,10 +215,17 @@ class FollowUp extends BaseModel
         $searchTerm = trim((string)($filters['search'] ?? $filters['q'] ?? ''));
         if ($searchTerm !== '') {
             $like = '%' . $searchTerm . '%';
-            $where[] = "(c.name LIKE ? OR c.client_code LIKE ? OR f.notes LIKE ?)";
-            $params[] = $like;
-            $params[] = $like;
-            $params[] = $like;
+            if ($hasLeads) {
+                $where[] = "(c.name LIKE ? OR c.client_code LIKE ? OR l.name LIKE ? OR l.lead_code LIKE ? OR f.notes LIKE ? OR f.remarks LIKE ?)";
+                for ($i = 0; $i < 6; $i++) {
+                    $params[] = $like;
+                }
+            } else {
+                $where[] = "(c.name LIKE ? OR c.client_code LIKE ? OR f.notes LIKE ?)";
+                $params[] = $like;
+                $params[] = $like;
+                $params[] = $like;
+            }
         }
 
         // Tab or status filtering
@@ -137,8 +249,13 @@ class FollowUp extends BaseModel
 
         $whereSql = implode(' AND ', $where);
 
+        $fromSql = "FROM `{$this->table}` f LEFT JOIN `clients` c ON f.client_id = c.id";
+        if ($hasLeads) {
+            $fromSql .= " LEFT JOIN `leads` l ON f.lead_id = l.id";
+        }
+
         // Count total
-        $countSql = "SELECT COUNT(*) FROM `{$this->table}` f JOIN `clients` c ON f.client_id = c.id WHERE {$whereSql}";
+        $countSql = "SELECT COUNT(*) {$fromSql} WHERE {$whereSql}";
         $countStmt = $pdo->prepare($countSql);
         $countStmt->execute($params);
         $total = (int)$countStmt->fetchColumn();
@@ -158,22 +275,46 @@ class FollowUp extends BaseModel
         $offset = max(0, ($page - 1) * $perPage);
         $limit = max(1, min($perPage, 100));
 
-        $dataSql = "SELECT f.*, 
-                           c.name AS client_name, c.client_code, c.assigned_to AS client_assigned_to,
-                           u.name AS user_name, u.email AS user_email
-                    FROM `{$this->table}` f
-                    JOIN `clients` c ON f.client_id = c.id
-                    LEFT JOIN `users` u ON f.user_id = u.id
-                    WHERE {$whereSql}
-                    ORDER BY {$sortColumn} {$sortDirection}, f.id DESC
-                    LIMIT {$limit} OFFSET {$offset}";
+        if ($hasLeads) {
+            $dataSql = "SELECT f.*, 
+                               c.name AS client_name, c.client_code, c.mobile AS client_mobile, c.assigned_to AS client_assigned_to,
+                               l.name AS lead_name, l.lead_code, l.mobile AS lead_mobile, l.assigned_to AS lead_assigned_to,
+                               COALESCE(c.name, l.name) AS contact_name,
+                               COALESCE(c.client_code, l.lead_code) AS contact_code,
+                               COALESCE(c.whatsapp_number, l.whatsapp_number, c.mobile, l.mobile) AS contact_whatsapp,
+                               COALESCE(c.mobile, l.mobile) AS contact_mobile,
+                               CASE WHEN f.lead_id IS NOT NULL THEN 'lead' ELSE 'client' END AS entity_type,
+                               u.name AS user_name, u.email AS user_email
+                        {$fromSql}
+                        LEFT JOIN `users` u ON f.user_id = u.id
+                        WHERE {$whereSql}
+                        ORDER BY {$sortColumn} {$sortDirection}, f.id DESC
+                        LIMIT {$limit} OFFSET {$offset}";
+        } else {
+            $dataSql = "SELECT f.*, 
+                               c.name AS client_name, c.client_code, c.assigned_to AS client_assigned_to,
+                               c.name AS contact_name, c.client_code AS contact_code,
+                               c.mobile AS contact_mobile, c.mobile AS contact_whatsapp,
+                               'client' AS entity_type,
+                               u.name AS user_name, u.email AS user_email
+                        {$fromSql}
+                        LEFT JOIN `users` u ON f.user_id = u.id
+                        WHERE {$whereSql}
+                        ORDER BY {$sortColumn} {$sortDirection}, f.id DESC
+                        LIMIT {$limit} OFFSET {$offset}";
+        }
 
         $dataStmt = $pdo->prepare($dataSql);
         $dataStmt->execute($params);
-        $items = $dataStmt->fetchAll();
+        $items = $dataStmt->fetchAll() ?: [];
 
         // Calculate counts for tabs
-        $counts = $this->getTabCounts($userId, $viewAll, !empty($filters['client_id']) ? (int)$filters['client_id'] : null);
+        $counts = $this->getTabCounts(
+            $userId,
+            $viewAll,
+            !empty($filters['client_id']) ? (int)$filters['client_id'] : null,
+            !empty($filters['lead_id']) ? (int)$filters['lead_id'] : null
+        );
 
         return [
             'items' => $items,
@@ -187,25 +328,51 @@ class FollowUp extends BaseModel
     /**
      * Compute badge counts for Today, Upcoming, Overdue, and Done tabs.
      */
-    public function getTabCounts(int $userId, bool $viewAll, ?int $clientId = null): array
+    public function getTabCounts(int $userId, bool $viewAll, ?int $clientId = null, ?int $leadId = null): array
     {
         $pdo = $this->getPdo();
         $now = date('Y-m-d H:i:s');
         $todayStart = date('Y-m-d 00:00:00');
         $todayEnd = date('Y-m-d 23:59:59');
+        $hasLeads = $this->hasLeadsTable();
 
-        $baseWhere = "f.deleted_at IS NULL AND c.deleted_at IS NULL";
+        $baseWhere = ["f.deleted_at IS NULL"];
         $baseParams = [];
 
-        if (!$viewAll) {
-            $baseWhere .= " AND (c.assigned_to = ? OR f.user_id = ?)";
-            $baseParams[] = $userId;
-            $baseParams[] = $userId;
+        if ($hasLeads) {
+            $baseWhere[] = "(c.id IS NULL OR c.deleted_at IS NULL)";
+            $baseWhere[] = "(l.id IS NULL OR l.deleted_at IS NULL)";
+            $baseWhere[] = "(f.client_id IS NOT NULL OR f.lead_id IS NOT NULL)";
+
+            if (!$viewAll) {
+                $baseWhere[] = "(c.assigned_to = ? OR l.assigned_to = ? OR f.user_id = ?)";
+                $baseParams[] = $userId;
+                $baseParams[] = $userId;
+                $baseParams[] = $userId;
+            }
+
+            if ($leadId !== null && $leadId > 0) {
+                $baseWhere[] = "f.lead_id = ?";
+                $baseParams[] = $leadId;
+            }
+        } else {
+            $baseWhere[] = "c.deleted_at IS NULL";
+            if (!$viewAll) {
+                $baseWhere[] = "(c.assigned_to = ? OR f.user_id = ?)";
+                $baseParams[] = $userId;
+                $baseParams[] = $userId;
+            }
         }
 
         if ($clientId !== null && $clientId > 0) {
-            $baseWhere .= " AND f.client_id = ?";
+            $baseWhere[] = "f.client_id = ?";
             $baseParams[] = $clientId;
+        }
+
+        $baseWhereSql = implode(' AND ', $baseWhere);
+        $fromSql = "FROM `{$this->table}` f LEFT JOIN `clients` c ON f.client_id = c.id";
+        if ($hasLeads) {
+            $fromSql .= " LEFT JOIN `leads` l ON f.lead_id = l.id";
         }
 
         $sql = "SELECT 
@@ -214,9 +381,8 @@ class FollowUp extends BaseModel
             SUM(CASE WHEN f.due_at < ? AND f.status = 'pending' THEN 1 ELSE 0 END) AS count_overdue,
             SUM(CASE WHEN f.status = 'done' THEN 1 ELSE 0 END) AS count_done,
             COUNT(*) AS count_all
-        FROM `{$this->table}` f
-        JOIN `clients` c ON f.client_id = c.id
-        WHERE {$baseWhere}";
+        {$fromSql}
+        WHERE {$baseWhereSql}";
 
         $stmt = $pdo->prepare($sql);
         $stmt->execute(array_merge([$todayStart, $todayEnd, $now, $now], $baseParams));
@@ -232,10 +398,15 @@ class FollowUp extends BaseModel
     }
 
     /**
-     * Mark follow-up as done with outcome note.
+     * Mark follow-up as done with outcome, remarks, and outcome note.
      */
-    public function markDone(int|string $id, ?string $outcomeNote = null): bool
-    {
+    public function markDone(
+        int|string $id,
+        ?string $outcomeNote = null,
+        ?string $outcome = null,
+        ?string $remarks = null,
+        ?string $nextFollowUpAt = null
+    ): bool {
         $existing = $this->find($id);
         if (!$existing) {
             return false;
@@ -247,10 +418,22 @@ class FollowUp extends BaseModel
             $notes = $notes !== '' ? $notes . "\n\n[Outcome]: " . $trimmedOutcome : "[Outcome]: " . $trimmedOutcome;
         }
 
-        return $this->update($id, [
+        $updateData = [
             'status' => 'done',
             'notes' => $notes,
-        ]);
+        ];
+
+        if ($outcome !== null && $outcome !== '') {
+            $updateData['outcome'] = $outcome;
+        }
+        if ($remarks !== null && $remarks !== '') {
+            $updateData['remarks'] = $remarks;
+        }
+        if ($nextFollowUpAt !== null && $nextFollowUpAt !== '') {
+            $updateData['next_follow_up_at'] = $nextFollowUpAt;
+        }
+
+        return $this->update($id, $updateData);
     }
 
     /**
@@ -277,22 +460,26 @@ class FollowUp extends BaseModel
         $todayEnd = date('Y-m-d 23:59:59');
 
         $sql = "SELECT f.*, 
-                       c.name AS client_name, c.client_code, c.mobile AS client_mobile,
+                       COALESCE(c.name, l.name) AS contact_name,
+                       COALESCE(c.client_code, l.lead_code) AS contact_code,
+                       COALESCE(c.mobile, l.mobile) AS contact_mobile,
                        u.id AS user_id, u.name AS user_name, u.email AS user_email
                 FROM `{$this->table}` f
-                JOIN `clients` c ON f.client_id = c.id
+                LEFT JOIN `clients` c ON f.client_id = c.id
+                LEFT JOIN `leads` l ON f.lead_id = l.id
                 JOIN `users` u ON f.user_id = u.id
                 WHERE f.due_at >= ? AND f.due_at <= ?
                   AND f.status = 'pending'
                   AND f.deleted_at IS NULL
-                  AND c.deleted_at IS NULL
+                  AND (c.id IS NULL OR c.deleted_at IS NULL)
+                  AND (l.id IS NULL OR l.deleted_at IS NULL)
                   AND u.deleted_at IS NULL
                   AND u.is_active = 1
                 ORDER BY f.user_id ASC, f.due_at ASC";
 
         $stmt = $this->getPdo()->prepare($sql);
         $stmt->execute([$todayStart, $todayEnd]);
-        return $stmt->fetchAll();
+        return $stmt->fetchAll() ?: [];
     }
 
     /**
@@ -302,23 +489,49 @@ class FollowUp extends BaseModel
     {
         $todayStart = date('Y-m-d 00:00:00');
         $todayEnd = date('Y-m-d 23:59:59');
+        $hasLeads = $this->hasLeadsTable();
 
-        $sql = "SELECT f.*, 
-                       c.name AS client_name, c.client_code,
-                       u.name AS user_name
-                FROM `{$this->table}` f
-                JOIN `clients` c ON f.client_id = c.id
-                LEFT JOIN `users` u ON f.user_id = u.id
-                WHERE f.due_at >= ? AND f.due_at <= ?
-                  AND f.status = 'pending'
-                  AND f.deleted_at IS NULL
-                  AND c.deleted_at IS NULL";
-        $params = [$todayStart, $todayEnd];
+        if ($hasLeads) {
+            $sql = "SELECT f.*, 
+                           COALESCE(c.name, l.name) AS contact_name,
+                           COALESCE(c.client_code, l.lead_code) AS contact_code,
+                           c.name AS client_name, c.client_code,
+                           u.name AS user_name
+                    FROM `{$this->table}` f
+                    LEFT JOIN `clients` c ON f.client_id = c.id
+                    LEFT JOIN `leads` l ON f.lead_id = l.id
+                    LEFT JOIN `users` u ON f.user_id = u.id
+                    WHERE f.due_at >= ? AND f.due_at <= ?
+                      AND f.status = 'pending'
+                      AND f.deleted_at IS NULL
+                      AND (c.id IS NULL OR c.deleted_at IS NULL)
+                      AND (l.id IS NULL OR l.deleted_at IS NULL)";
+            $params = [$todayStart, $todayEnd];
 
-        if (!$viewAll) {
-            $sql .= " AND (c.assigned_to = ? OR f.user_id = ?)";
-            $params[] = $userId;
-            $params[] = $userId;
+            if (!$viewAll) {
+                $sql .= " AND (c.assigned_to = ? OR l.assigned_to = ? OR f.user_id = ?)";
+                $params[] = $userId;
+                $params[] = $userId;
+                $params[] = $userId;
+            }
+        } else {
+            $sql = "SELECT f.*, 
+                           c.name AS client_name, c.client_code, c.name AS contact_name,
+                           u.name AS user_name
+                    FROM `{$this->table}` f
+                    JOIN `clients` c ON f.client_id = c.id
+                    LEFT JOIN `users` u ON f.user_id = u.id
+                    WHERE f.due_at >= ? AND f.due_at <= ?
+                      AND f.status = 'pending'
+                      AND f.deleted_at IS NULL
+                      AND c.deleted_at IS NULL";
+            $params = [$todayStart, $todayEnd];
+
+            if (!$viewAll) {
+                $sql .= " AND (c.assigned_to = ? OR f.user_id = ?)";
+                $params[] = $userId;
+                $params[] = $userId;
+            }
         }
 
         $safeLimit = max(1, min((int)$limit, 100));
@@ -326,6 +539,6 @@ class FollowUp extends BaseModel
 
         $stmt = $this->getPdo()->prepare($sql);
         $stmt->execute($params);
-        return $stmt->fetchAll();
+        return $stmt->fetchAll() ?: [];
     }
 }
