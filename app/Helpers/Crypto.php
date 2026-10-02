@@ -138,4 +138,67 @@ class Crypto
     {
         return $value !== null && str_contains($value, '*');
     }
+
+    /**
+     * Encrypt any sensitive secret/password at rest using OpenSSL AES-256-GCM.
+     */
+    public static function encryptSecret(?string $text): ?string
+    {
+        if ($text === null || $text === '') {
+            return null;
+        }
+
+        $key = self::getKey();
+        $iv = random_bytes(self::IV_LENGTH);
+        $tag = '';
+
+        $cipherText = openssl_encrypt(
+            $text,
+            self::CIPHER,
+            $key,
+            OPENSSL_RAW_DATA,
+            $iv,
+            $tag,
+            '',
+            self::TAG_LENGTH
+        );
+
+        if ($cipherText === false) {
+            throw new \RuntimeException("Encryption of secret failed.");
+        }
+
+        return base64_encode($iv . $tag . $cipherText);
+    }
+
+    /**
+     * Decrypt sensitive secret/password from AES-256-GCM ciphertext.
+     */
+    public static function decryptSecret(?string $payload): ?string
+    {
+        if ($payload === null || $payload === '') {
+            return null;
+        }
+
+        $trimmed = trim($payload);
+        $raw = base64_decode($trimmed, true);
+        if ($raw === false || strlen($raw) < (self::IV_LENGTH + self::TAG_LENGTH)) {
+            return $trimmed;
+        }
+
+        $iv = substr($raw, 0, self::IV_LENGTH);
+        $tag = substr($raw, self::IV_LENGTH, self::TAG_LENGTH);
+        $cipherText = substr($raw, self::IV_LENGTH + self::TAG_LENGTH);
+        $key = self::getKey();
+
+        $plain = openssl_decrypt(
+            $cipherText,
+            self::CIPHER,
+            $key,
+            OPENSSL_RAW_DATA,
+            $iv,
+            $tag
+        );
+
+        return $plain !== false ? $plain : $trimmed;
+    }
 }

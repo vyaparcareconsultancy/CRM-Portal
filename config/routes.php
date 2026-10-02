@@ -285,6 +285,36 @@ $router->get('/admin/permissions', [\App\Controllers\PermissionController::class
 $router->get('/api/admin/permissions/matrix', [\App\Controllers\PermissionController::class, 'getMatrix'], ['throttle:120,1', AuthMiddleware::class, 'perm:user.manage']);
 $router->post('/api/admin/permissions/toggle', [\App\Controllers\PermissionController::class, 'toggle'], ['throttle:120,1', AuthMiddleware::class, 'perm:user.manage']);
 
+// Phase 3: Services Master Catalog (Admin/Manager)
+$router->get('/services', [\App\Controllers\ServiceCatalogController::class, 'index'], [AuthMiddleware::class, 'perm:service.manage']);
+$router->get('/api/services', [\App\Controllers\ServiceCatalogController::class, 'apiList'], ['throttle:120,1', AuthMiddleware::class]);
+$router->post('/api/services', [\App\Controllers\ServiceCatalogController::class, 'apiStore'], ['throttle:120,1', AuthMiddleware::class, 'perm:service.manage']);
+$router->put('/api/services/{id}', [\App\Controllers\ServiceCatalogController::class, 'apiUpdate'], ['throttle:120,1', AuthMiddleware::class, 'perm:service.manage']);
+$router->post('/api/services/{id}', [\App\Controllers\ServiceCatalogController::class, 'apiUpdate'], ['throttle:120,1', AuthMiddleware::class, 'perm:service.manage']);
+$router->delete('/api/services/{id}', [\App\Controllers\ServiceCatalogController::class, 'apiDelete'], ['throttle:120,1', AuthMiddleware::class, 'perm:service.manage']);
+$router->post('/api/services/{id}/delete', [\App\Controllers\ServiceCatalogController::class, 'apiDelete'], ['throttle:120,1', AuthMiddleware::class, 'perm:service.manage']);
+
+// Phase 3: Client Services Subscriptions
+$router->get('/api/clients/{id}/services', [\App\Controllers\ClientComplianceController::class, 'listServices'], ['throttle:120,1', AuthMiddleware::class, 'perm:client.view_all|client.view_own']);
+$router->post('/api/clients/{id}/services', [\App\Controllers\ClientComplianceController::class, 'storeService'], ['throttle:120,1', AuthMiddleware::class, 'perm:client_service.manage|client.edit']);
+$router->put('/api/clients/{id}/services/{serviceId}', [\App\Controllers\ClientComplianceController::class, 'updateService'], ['throttle:120,1', AuthMiddleware::class, 'perm:client_service.manage|client.edit']);
+$router->post('/api/clients/{id}/services/{serviceId}', [\App\Controllers\ClientComplianceController::class, 'updateService'], ['throttle:120,1', AuthMiddleware::class, 'perm:client_service.manage|client.edit']);
+$router->delete('/api/clients/{id}/services/{serviceId}', [\App\Controllers\ClientComplianceController::class, 'deleteService'], ['throttle:120,1', AuthMiddleware::class, 'perm:client_service.manage|client.edit']);
+$router->post('/api/clients/{id}/services/{serviceId}/delete', [\App\Controllers\ClientComplianceController::class, 'deleteService'], ['throttle:120,1', AuthMiddleware::class, 'perm:client_service.manage|client.edit']);
+
+// Phase 3: Client Compliance Details & Encrypted Portal Credentials
+$router->get('/api/clients/{id}/compliance', [\App\Controllers\ClientComplianceController::class, 'getCompliance'], ['throttle:120,1', AuthMiddleware::class, 'perm:client.view_all|client.view_own']);
+$router->post('/api/clients/{id}/compliance', [\App\Controllers\ClientComplianceController::class, 'saveCompliance'], ['throttle:120,1', AuthMiddleware::class, 'perm:client_service.manage|client.edit']);
+$router->post('/api/clients/{id}/compliance/reveal', [\App\Controllers\ClientComplianceController::class, 'revealCredentials'], ['throttle:60,1', AuthMiddleware::class, 'perm:client.view_tax']);
+
+// Phase 3: Work Tracker per Service Period
+$router->get('/api/clients/{id}/work-tracker', [\App\Controllers\ClientComplianceController::class, 'listWorkTracker'], ['throttle:120,1', AuthMiddleware::class, 'perm:client.view_all|client.view_own']);
+$router->post('/api/clients/{id}/work-tracker', [\App\Controllers\ClientComplianceController::class, 'storeWorkTracker'], ['throttle:120,1', AuthMiddleware::class, 'perm:client_service.manage|client.edit']);
+$router->put('/api/clients/{id}/work-tracker/{trackerId}', [\App\Controllers\ClientComplianceController::class, 'updateWorkTracker'], ['throttle:120,1', AuthMiddleware::class, 'perm:client_service.manage|client.edit']);
+$router->post('/api/clients/{id}/work-tracker/{trackerId}', [\App\Controllers\ClientComplianceController::class, 'updateWorkTracker'], ['throttle:120,1', AuthMiddleware::class, 'perm:client_service.manage|client.edit']);
+$router->delete('/api/clients/{id}/work-tracker/{trackerId}', [\App\Controllers\ClientComplianceController::class, 'deleteWorkTracker'], ['throttle:120,1', AuthMiddleware::class, 'perm:client_service.manage|client.edit']);
+$router->post('/api/clients/{id}/work-tracker/{trackerId}/delete', [\App\Controllers\ClientComplianceController::class, 'deleteWorkTracker'], ['throttle:120,1', AuthMiddleware::class, 'perm:client_service.manage|client.edit']);
+
 // Root redirect to dashboard or login
 $router->get('/', static function (): void {
     Response::redirect('/login');
