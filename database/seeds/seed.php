@@ -60,8 +60,9 @@ try {
     $roles = [
         ['name' => 'admin', 'label' => 'Administrator'],
         ['name' => 'manager', 'label' => 'Manager'],
-        ['name' => 'sales', 'label' => 'Sales Representative'],
         ['name' => 'counselor', 'label' => 'Counselor'],
+        ['name' => 'accountant', 'label' => 'Accountant'],
+        ['name' => 'trainer', 'label' => 'Trainer'],
     ];
 
     $roleStmt = $pdo->prepare("
@@ -80,19 +81,54 @@ try {
     // 2. Seed Permissions
     echo "Seeding permissions..." . PHP_EOL;
     $permissions = [
+        // Clients & Tax
         ['name' => 'client.create', 'label' => 'Create Client'],
         ['name' => 'client.view_all', 'label' => 'View All Clients'],
         ['name' => 'client.view_own', 'label' => 'View Assigned Clients'],
         ['name' => 'client.edit', 'label' => 'Edit Client'],
         ['name' => 'client.delete', 'label' => 'Delete Client'],
         ['name' => 'client.export', 'label' => 'Export Clients'],
-        ['name' => 'user.manage', 'label' => 'Manage Users & Roles'],
-        ['name' => 'followup.manage', 'label' => 'Manage Follow-ups'],
+        ['name' => 'client.view_tax', 'label' => 'View Client Tax Data (PAN/GST)'],
+
+        // Leads & Sources
         ['name' => 'lead.view', 'label' => 'View Leads'],
         ['name' => 'lead.view_all', 'label' => 'View All Leads'],
         ['name' => 'lead.manage', 'label' => 'Manage Leads'],
         ['name' => 'lead.convert', 'label' => 'Convert Leads'],
         ['name' => 'lead_source.manage', 'label' => 'Manage Lead Sources'],
+
+        // Follow-ups
+        ['name' => 'followup.manage', 'label' => 'Manage Follow-ups'],
+
+        // Services
+        ['name' => 'service.manage', 'label' => 'Manage Services Catalog'],
+        ['name' => 'client_service.manage', 'label' => 'Manage Client Service Subscriptions'],
+
+        // Billing & Payments
+        ['name' => 'invoice.manage', 'label' => 'Manage Invoices'],
+        ['name' => 'payment.view', 'label' => 'View Payments & Fees'],
+        ['name' => 'payment.record', 'label' => 'Record Payments'],
+        ['name' => 'payment.manage', 'label' => 'Manage/Edit Payments'],
+
+        // Academic & Training
+        ['name' => 'student.manage', 'label' => 'Manage Students'],
+        ['name' => 'student.view', 'label' => 'View All Students'],
+        ['name' => 'student.view_assigned', 'label' => 'View Assigned Batch Students'],
+        ['name' => 'batch.manage', 'label' => 'Manage Batches'],
+        ['name' => 'batch.view_assigned', 'label' => 'View Assigned Batches'],
+        ['name' => 'attendance.manage', 'label' => 'Mark Attendance'],
+        ['name' => 'attendance.view', 'label' => 'View Attendance'],
+        ['name' => 'progress.manage', 'label' => 'Manage Student Progress'],
+
+        // Reports
+        ['name' => 'report.view_financial', 'label' => 'View Financial Reports'],
+        ['name' => 'report.view_leads', 'label' => 'View Lead Reports'],
+        ['name' => 'report.view_academic', 'label' => 'View Academic & Batch Reports'],
+
+        // Reminders & Administration
+        ['name' => 'reminder.manage', 'label' => 'Manage Reminders'],
+        ['name' => 'user.manage', 'label' => 'Manage Users & Permissions'],
+        ['name' => 'system.settings', 'label' => 'Manage System Settings'],
     ];
 
     $permStmt = $pdo->prepare("
@@ -110,49 +146,49 @@ try {
 
     // 3. Seed Role-Permissions Mapping
     echo "Mapping permissions to roles..." . PHP_EOL;
+    $allPermNames = array_column($permissions, 'name');
+
     $rolePermissionMap = [
-        'admin' => [
-            'client.create',
-            'client.view_all',
-            'client.view_own',
-            'client.edit',
-            'client.delete',
-            'client.export',
-            'user.manage',
-            'followup.manage',
+        'admin' => $allPermNames,
+        'manager' => array_values(array_diff($allPermNames, ['user.manage', 'system.settings'])),
+        'counselor' => [
             'lead.view',
-            'lead.view_all',
             'lead.manage',
             'lead.convert',
             'lead_source.manage',
-        ],
-        'manager' => [
-            'client.create',
-            'client.view_all',
-            'client.edit',
-            'client.delete',
-            'client.export',
             'followup.manage',
-            'lead.view',
-            'lead.view_all',
-            'lead.manage',
-            'lead.convert',
-        ],
-        'sales' => [
             'client.create',
+            'client.view_own',
+            'student.view',
+            'student.manage',
+            'batch.manage',
+            'attendance.view',
+            'report.view_leads',
+        ],
+        'accountant' => [
+            'client.view_all',
             'client.view_own',
             'client.edit',
             'client.export',
+            'client.view_tax',
+            'service.manage',
+            'client_service.manage',
+            'invoice.manage',
+            'payment.view',
+            'payment.record',
+            'payment.manage',
+            'student.view',
+            'report.view_financial',
+            'reminder.manage',
             'followup.manage',
-            'lead.view',
-            'lead.manage',
         ],
-        'counselor' => [
-            'client.create',
-            'followup.manage',
-            'lead.view',
-            'lead.manage',
-            'lead.convert',
+        'trainer' => [
+            'batch.view_assigned',
+            'student.view_assigned',
+            'attendance.manage',
+            'attendance.view',
+            'progress.manage',
+            'report.view_academic',
         ],
     ];
 

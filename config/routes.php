@@ -35,16 +35,21 @@ $router->get('/api/roles', [\App\Controllers\UserController::class, 'roles'], ['
 
 // Client API Endpoints
 $router->get('/api/clients/export', [\App\Controllers\ClientController::class, 'export'], ['throttle:120,1', 'throttle:10,60,export', AuthMiddleware::class, 'perm:client.export']);
-$router->get('/api/clients', [\App\Controllers\ClientController::class, 'index'], ['throttle:120,1', AuthMiddleware::class]);
+$router->get('/api/clients', [\App\Controllers\ClientController::class, 'index'], ['throttle:120,1', AuthMiddleware::class, 'perm:client.view_all|client.view_own']);
 $router->post('/api/clients', [\App\Controllers\ClientController::class, 'store'], ['throttle:120,1', 'throttle:20,60,client_create', AuthMiddleware::class, 'perm:client.create']);
-$router->get('/api/clients/{id}', [\App\Controllers\ClientController::class, 'show'], ['throttle:120,1', AuthMiddleware::class]);
+$router->get('/api/clients/{id}', [\App\Controllers\ClientController::class, 'show'], ['throttle:120,1', AuthMiddleware::class, 'perm:client.view_all|client.view_own']);
 $router->put('/api/clients/{id}', [\App\Controllers\ClientController::class, 'update'], ['throttle:120,1', AuthMiddleware::class, 'perm:client.edit']);
 $router->delete('/api/clients/{id}', [\App\Controllers\ClientController::class, 'destroy'], ['throttle:120,1', AuthMiddleware::class, 'perm:client.delete']);
 $router->post('/api/clients/{id}/anonymize', [\App\Controllers\ClientController::class, 'anonymize'], ['throttle:120,1', AuthMiddleware::class, 'perm:user.manage']);
 $router->post('/api/clients/{id}/documents', [\App\Controllers\ClientController::class, 'uploadDocument'], ['throttle:120,1', AuthMiddleware::class, 'perm:client.edit']);
-$router->get('/api/clients/{id}/documents/{docId}', [\App\Controllers\ClientController::class, 'downloadDocument'], ['throttle:120,1', AuthMiddleware::class]);
+$router->get('/api/clients/{id}/documents/{docId}', [\App\Controllers\ClientController::class, 'downloadDocument'], ['throttle:120,1', AuthMiddleware::class, 'perm:client.view_all|client.view_own']);
 $router->delete('/api/clients/{id}/documents/{docId}', [\App\Controllers\ClientController::class, 'destroyDocument'], ['throttle:120,1', AuthMiddleware::class, 'perm:client.edit']);
 $router->get('/api/lookups', [\App\Controllers\ClientController::class, 'lookups'], ['throttle:120,1', AuthMiddleware::class]);
+
+// Payment API Endpoints
+$router->get('/api/payments', [\App\Controllers\PaymentController::class, 'index'], ['throttle:120,1', AuthMiddleware::class, 'perm:payment.view']);
+$router->get('/api/payments/{id}', [\App\Controllers\PaymentController::class, 'show'], ['throttle:120,1', AuthMiddleware::class, 'perm:payment.view']);
+$router->post('/api/payments', [\App\Controllers\PaymentController::class, 'store'], ['throttle:120,1', AuthMiddleware::class, 'perm:payment.record']);
 
 // Lead API Endpoints
 $router->get('/api/leads/lookups', [\App\Controllers\LeadController::class, 'lookups'], ['throttle:120,1', AuthMiddleware::class]);
@@ -112,7 +117,7 @@ $router->get('/clients', static function (): void {
         'title' => 'Clients Directory — CRM Portal',
         'pageHeading' => 'Clients Directory',
     ]);
-}, [AuthMiddleware::class]);
+}, [AuthMiddleware::class, 'perm:client.view_all|client.view_own']);
 
 $router->get('/clients/create', static function (): void {
     $isSales = !\App\Services\PermissionService::can('client.view_all');
@@ -184,7 +189,7 @@ $router->get('/clients/{id}', static function (array $params): void {
         'isSales' => $isSales,
         'currentUserId' => $currentUserId,
     ]);
-}, [AuthMiddleware::class]);
+}, [AuthMiddleware::class, 'perm:client.view_all|client.view_own']);
 
 $router->get('/clients/{id}/edit', static function (array $params): void {
     $rawId = $params['id'] ?? '';
@@ -274,6 +279,11 @@ $router->get('/users', static function (): void {
 // Admin Log Viewer
 $router->get('/admin/logs', [\App\Controllers\LogController::class, 'index'], [AuthMiddleware::class, 'perm:user.manage']);
 $router->get('/api/admin/logs', [\App\Controllers\LogController::class, 'api'], ['throttle:120,1', AuthMiddleware::class, 'perm:user.manage']);
+
+// Roles & Permissions Matrix Admin Pages
+$router->get('/admin/permissions', [\App\Controllers\PermissionController::class, 'index'], [AuthMiddleware::class, 'perm:user.manage']);
+$router->get('/api/admin/permissions/matrix', [\App\Controllers\PermissionController::class, 'getMatrix'], ['throttle:120,1', AuthMiddleware::class, 'perm:user.manage']);
+$router->post('/api/admin/permissions/toggle', [\App\Controllers\PermissionController::class, 'toggle'], ['throttle:120,1', AuthMiddleware::class, 'perm:user.manage']);
 
 // Root redirect to dashboard or login
 $router->get('/', static function (): void {

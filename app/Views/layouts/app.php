@@ -51,6 +51,7 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
                 </li>
                 <?php endif; ?>
 
+                <?php if (can('client.view_all') || can('client.view_own')): ?>
                 <li class="menu-label">Clients</li>
                 <li>
                     <a href="/clients" class="sidebar-link <?= $currentPath === '/clients' ? 'active' : '' ?>">
@@ -58,13 +59,17 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
                         <span>Clients</span>
                     </a>
                 </li>
+                <?php if (can('client.create')): ?>
                 <li>
                     <a href="/clients/create" class="sidebar-link <?= $currentPath === '/clients/create' ? 'active' : '' ?>">
                         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
                         <span>Add Client</span>
                     </a>
                 </li>
+                <?php endif; ?>
+                <?php endif; ?>
 
+                <?php if (can('followup.manage')): ?>
                 <li class="menu-label">Activity</li>
                 <li>
                     <a href="/follow-ups" class="sidebar-link <?= $currentPath === '/follow-ups' ? 'active' : '' ?>">
@@ -72,6 +77,7 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
                         <span>Follow-ups</span>
                     </a>
                 </li>
+                <?php endif; ?>
 
                 <?php if (can('user.manage')): ?>
                 <li class="menu-label">Administration</li>
@@ -79,6 +85,12 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
                     <a href="/users" class="sidebar-link <?= ($currentPath ?? '') === '/users' ? 'active' : '' ?>">
                         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
                         <span>Users</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="/admin/permissions" class="sidebar-link <?= ($currentPath ?? '') === '/admin/permissions' ? 'active' : '' ?>">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                        <span>Permissions Matrix</span>
                     </a>
                 </li>
                 <li>

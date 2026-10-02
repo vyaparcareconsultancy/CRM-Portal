@@ -85,7 +85,7 @@ class UserService
     public function getRoles(): array
     {
         $pdo = Database::getConnection();
-        $stmt = $pdo->query("SELECT `id`, `name`, `label` FROM `roles` ORDER BY `id` ASC");
+        $stmt = $pdo->query("SELECT `id`, `name`, `label` FROM `roles` WHERE `name` != 'sales' ORDER BY `id` ASC");
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 

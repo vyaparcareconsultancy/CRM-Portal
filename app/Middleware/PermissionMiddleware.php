@@ -37,23 +37,34 @@ class PermissionMiddleware
             return false;
         }
 
-        // 2. Check permission if specified
-        if ($requiredPermission !== null && !PermissionService::can($requiredPermission)) {
-            if ($request->isJson() || str_starts_with($request->path(), '/api/')) {
-                Response::error('Forbidden: insufficient permissions', 403);
-                return false;
+        // 2. Check permission if specified (supports multiple alternatives separated by |)
+        if ($requiredPermission !== null) {
+            $alternatives = explode('|', $requiredPermission);
+            $hasPermission = false;
+            foreach ($alternatives as $perm) {
+                if (PermissionService::can(trim($perm))) {
+                    $hasPermission = true;
+                    break;
+                }
             }
 
-            // Render 403 page for browser requests
-            if (!headers_sent()) {
-                http_response_code(403);
-                header('Content-Type: text/html; charset=utf-8');
+            if (!$hasPermission) {
+                if ($request->isJson() || str_starts_with($request->path(), '/api/')) {
+                    Response::error('Forbidden: insufficient permissions', 403);
+                    return false;
+                }
+
+                // Render 403 page for browser requests
+                if (!headers_sent()) {
+                    http_response_code(403);
+                    header('Content-Type: text/html; charset=utf-8');
+                }
+                echo View::render('errors/403', [
+                    'title' => '403 Forbidden — CRM Portal',
+                    'message' => 'You do not have permission to perform this action.',
+                ], null);
+                exit;
             }
-            echo View::render('errors/403', [
-                'title' => '403 Forbidden — CRM Portal',
-                'message' => 'You do not have permission to perform this action.',
-            ], null);
-            exit;
         }
 
         return true;
