@@ -46,12 +46,16 @@ echo "Connecting to MySQL server at {$host}:{$port}..." . PHP_EOL;
 
 try {
     // 1. Connect to MySQL server and ensure target database exists
+    $multiStatementsAttr = defined('Pdo\Mysql::ATTR_MULTI_STATEMENTS')
+        ? Pdo\Mysql::ATTR_MULTI_STATEMENTS
+        : PDO::MYSQL_ATTR_MULTI_STATEMENTS;
+
     $serverDsn = sprintf('mysql:host=%s;port=%s;charset=utf8mb4', $host, $port);
     $pdo = new PDO($serverDsn, $user, $pass, [
         PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
         PDO::ATTR_EMULATE_PREPARES => false,
-        PDO::MYSQL_ATTR_MULTI_STATEMENTS => true,
+        $multiStatementsAttr => true,
     ]);
 
     $safeDbName = str_replace('`', '``', $dbName);
