@@ -36,7 +36,7 @@ Thumbs.db
 .env.*
 !.env.example
 # dependencies
-vendor/
+/vendor/
 node_modules/
 # runtime data
 storage/uploads/*
