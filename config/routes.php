@@ -341,6 +341,49 @@ $router->post('/api/payments/{id}/email-receipt', [\App\Controllers\PaymentContr
 $router->get('/api/clients/{id}/ledger', [\App\Controllers\PaymentController::class, 'apiClientLedger'], ['throttle:120,1', AuthMiddleware::class, 'perm:payment.view']);
 $router->get('/api/students/{id}/ledger', [\App\Controllers\PaymentController::class, 'apiStudentLedger'], ['throttle:120,1', AuthMiddleware::class, 'perm:payment.view']);
 
+// Phase 5: Training Institute Views
+$router->get('/courses', [\App\Controllers\TrainingController::class, 'coursesIndex'], [AuthMiddleware::class, 'perm:course.manage|student.view|batch.view_assigned']);
+$router->get('/batches', [\App\Controllers\TrainingController::class, 'batchesIndex'], [AuthMiddleware::class, 'perm:batch.manage|batch.view_assigned']);
+$router->get('/attendance', [\App\Controllers\TrainingController::class, 'attendanceIndex'], [AuthMiddleware::class, 'perm:attendance.manage|attendance.view']);
+$router->get('/students', [\App\Controllers\TrainingController::class, 'studentsIndex'], [AuthMiddleware::class, 'perm:student.manage|student.view|student.view_assigned']);
+$router->get('/students/{id}', [\App\Controllers\TrainingController::class, 'studentProfile'], [AuthMiddleware::class, 'perm:student.view|student.view_assigned']);
+
+// Phase 5: Courses API
+$router->get('/api/courses', [\App\Controllers\TrainingController::class, 'apiCoursesList'], ['throttle:120,1', AuthMiddleware::class]);
+$router->post('/api/courses', [\App\Controllers\TrainingController::class, 'apiCourseStore'], ['throttle:120,1', AuthMiddleware::class, 'perm:course.manage']);
+$router->put('/api/courses/{id}', [\App\Controllers\TrainingController::class, 'apiCourseUpdate'], ['throttle:120,1', AuthMiddleware::class, 'perm:course.manage']);
+$router->post('/api/courses/{id}', [\App\Controllers\TrainingController::class, 'apiCourseUpdate'], ['throttle:120,1', AuthMiddleware::class, 'perm:course.manage']);
+$router->delete('/api/courses/{id}', [\App\Controllers\TrainingController::class, 'apiCourseDelete'], ['throttle:120,1', AuthMiddleware::class, 'perm:course.manage']);
+$router->post('/api/courses/{id}/delete', [\App\Controllers\TrainingController::class, 'apiCourseDelete'], ['throttle:120,1', AuthMiddleware::class, 'perm:course.manage']);
+
+// Phase 5: Batches API (with Trainer Scoping)
+$router->get('/api/batches', [\App\Controllers\TrainingController::class, 'apiBatchesList'], ['throttle:120,1', AuthMiddleware::class, 'perm:batch.manage|batch.view_assigned']);
+$router->post('/api/batches', [\App\Controllers\TrainingController::class, 'apiBatchStore'], ['throttle:120,1', AuthMiddleware::class, 'perm:batch.manage']);
+$router->get('/api/batches/{id}', [\App\Controllers\TrainingController::class, 'apiBatchShow'], ['throttle:120,1', AuthMiddleware::class, 'perm:batch.manage|batch.view_assigned']);
+$router->put('/api/batches/{id}', [\App\Controllers\TrainingController::class, 'apiBatchUpdate'], ['throttle:120,1', AuthMiddleware::class, 'perm:batch.manage|batch.view_assigned']);
+$router->post('/api/batches/{id}', [\App\Controllers\TrainingController::class, 'apiBatchUpdate'], ['throttle:120,1', AuthMiddleware::class, 'perm:batch.manage|batch.view_assigned']);
+$router->delete('/api/batches/{id}', [\App\Controllers\TrainingController::class, 'apiBatchDelete'], ['throttle:120,1', AuthMiddleware::class, 'perm:batch.manage']);
+$router->post('/api/batches/{id}/delete', [\App\Controllers\TrainingController::class, 'apiBatchDelete'], ['throttle:120,1', AuthMiddleware::class, 'perm:batch.manage']);
+$router->get('/api/batches/{id}/roster', [\App\Controllers\TrainingController::class, 'apiBatchRoster'], ['throttle:120,1', AuthMiddleware::class, 'perm:batch.manage|batch.view_assigned|student.view_assigned']);
+
+// Phase 5: Admissions & Enrollments API (links to Phase 4 Invoice)
+$router->post('/api/admissions', [\App\Controllers\TrainingController::class, 'apiAdmit'], ['throttle:120,1', AuthMiddleware::class, 'perm:student.manage']);
+$router->post('/api/enrollments/{id}/status', [\App\Controllers\TrainingController::class, 'apiUpdateEnrollmentStatus'], ['throttle:120,1', AuthMiddleware::class, 'perm:student.manage']);
+
+// Phase 5: Attendance API
+$router->get('/api/batches/{id}/attendance', [\App\Controllers\TrainingController::class, 'apiGetBatchAttendance'], ['throttle:120,1', AuthMiddleware::class, 'perm:attendance.manage|attendance.view']);
+$router->post('/api/batches/{id}/attendance', [\App\Controllers\TrainingController::class, 'apiMarkAttendance'], ['throttle:120,1', AuthMiddleware::class, 'perm:attendance.manage']);
+$router->get('/api/batches/{id}/attendance/monthly', [\App\Controllers\TrainingController::class, 'apiMonthlySheet'], ['throttle:120,1', AuthMiddleware::class, 'perm:attendance.manage|attendance.view']);
+
+// Phase 5: Progress & Certification API
+$router->get('/api/enrollments/{id}/progress', [\App\Controllers\TrainingController::class, 'apiGetProgress'], ['throttle:120,1', AuthMiddleware::class, 'perm:progress.manage|batch.view_assigned']);
+$router->post('/api/enrollments/{id}/progress', [\App\Controllers\TrainingController::class, 'apiUpdateProgress'], ['throttle:120,1', AuthMiddleware::class, 'perm:progress.manage']);
+$router->post('/api/enrollments/{id}/certificate', [\App\Controllers\TrainingController::class, 'apiIssueCertificate'], ['throttle:120,1', AuthMiddleware::class, 'perm:student.manage']);
+
+// Phase 5: Students Directory & Profile API
+$router->get('/api/students', [\App\Controllers\TrainingController::class, 'apiStudentsList'], ['throttle:120,1', AuthMiddleware::class, 'perm:student.view|student.view_assigned']);
+$router->get('/api/students/{id}/profile', [\App\Controllers\TrainingController::class, 'apiStudentProfile'], ['throttle:120,1', AuthMiddleware::class, 'perm:student.view|student.view_assigned']);
+
 // Root redirect to dashboard or login
 $router->get('/', static function (): void {
     Response::redirect('/login');

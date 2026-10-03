@@ -52,4 +52,71 @@ class Student extends BaseModel
         $row = $stmt->fetch();
         return $row !== false ? $row : null;
     }
+
+    /**
+     * List students with optional trainer scoping, batch filter, and search.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function listStudents(?int $trainerId = null, ?int $batchId = null, ?string $search = null): array
+    {
+        $sql = "
+            SELECT DISTINCT
+                s.*,
+                (
+                    SELECT b.`name` 
+                    FROM `enrollments` e 
+                    JOIN `batches` b ON b.`id` = e.`batch_id` 
+                    WHERE e.`student_id` = s.`id` AND e.`deleted_at` IS NULL 
+                    ORDER BY e.`id` DESC LIMIT 1
+                ) AS `current_batch_name`,
+                (
+                    SELECT c.`name` 
+                    FROM `enrollments` e 
+                    JOIN `courses` c ON c.`id` = e.`course_id` 
+                    WHERE e.`student_id` = s.`id` AND e.`deleted_at` IS NULL 
+                    ORDER BY e.`id` DESC LIMIT 1
+                ) AS `current_course_name`
+            FROM `{$this->table}` s
+        ";
+
+        if ($trainerId !== null) {
+            $sql .= "
+                JOIN `enrollments` enr ON enr.`student_id` = s.`id` AND enr.`deleted_at` IS NULL
+                JOIN `batches` bat ON bat.`id` = enr.`batch_id` AND bat.`deleted_at` IS NULL
+            ";
+        } elseif ($batchId !== null) {
+            $sql .= "
+                JOIN `enrollments` enr ON enr.`student_id` = s.`id` AND enr.`deleted_at` IS NULL
+            ";
+        }
+
+        $sql .= " WHERE s.`deleted_at` IS NULL";
+        $params = [];
+
+        if ($trainerId !== null) {
+            $sql .= " AND bat.`trainer_id` = ?";
+            $params[] = $trainerId;
+        }
+
+        if ($batchId !== null) {
+            $sql .= " AND enr.`batch_id` = ?";
+            $params[] = $batchId;
+        }
+
+        if ($search !== null && trim($search) !== '') {
+            $sql .= " AND (s.`name` LIKE ? OR s.`student_code` LIKE ? OR s.`mobile` LIKE ? OR s.`email` LIKE ?)";
+            $term = '%' . trim($search) . '%';
+            $params[] = $term;
+            $params[] = $term;
+            $params[] = $term;
+            $params[] = $term;
+        }
+
+        $sql .= " ORDER BY s.`id` DESC";
+
+        $stmt = $this->getPdo()->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
 }

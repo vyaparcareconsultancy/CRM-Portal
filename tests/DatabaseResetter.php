@@ -110,7 +110,10 @@ class DatabaseResetter
         // Seed roles
         $roles = [
             ['name' => 'admin', 'label' => 'Administrator'],
-            ['name' => 'manager', 'label' => 'Sales Manager'],
+            ['name' => 'manager', 'label' => 'Manager'],
+            ['name' => 'counselor', 'label' => 'Counselor'],
+            ['name' => 'accountant', 'label' => 'Accountant'],
+            ['name' => 'trainer', 'label' => 'Trainer'],
             ['name' => 'sales', 'label' => 'Sales Representative'],
         ];
         $roleStmt = $pdo->prepare("INSERT IGNORE INTO `roles` (`name`, `label`) VALUES (?, ?)");
