@@ -403,9 +403,27 @@ $router->get('/api/notifications', [\App\Controllers\DocumentTimelineController:
 $router->post('/api/notifications/{id}/read', [\App\Controllers\DocumentTimelineController::class, 'apiMarkNotificationRead'], ['throttle:120,1', AuthMiddleware::class]);
 $router->post('/api/notifications/read-all', [\App\Controllers\DocumentTimelineController::class, 'apiMarkAllNotificationsRead'], ['throttle:120,1', AuthMiddleware::class]);
 
+// Phase 7: Reminders & Compliance Deadlines Web View
+$router->get('/reminders', [\App\Controllers\ReminderController::class, 'index'], [AuthMiddleware::class, 'perm:reminder.view|reminder.manage']);
+
+// Phase 7: Reminders API
+$router->get('/api/reminders', [\App\Controllers\ReminderController::class, 'apiListReminders'], ['throttle:120,1', AuthMiddleware::class, 'perm:reminder.view|reminder.manage']);
+$router->post('/api/reminders/{id}/done', [\App\Controllers\ReminderController::class, 'apiMarkDone'], ['throttle:60,1', AuthMiddleware::class, 'perm:reminder.manage|reminder.view']);
+$router->post('/api/reminders/generate-now', [\App\Controllers\ReminderController::class, 'apiGenerateNow'], ['throttle:30,1', AuthMiddleware::class, 'perm:reminder.manage']);
+
+// Phase 7: Reminder Rules Management API
+$router->get('/api/reminder-rules', [\App\Controllers\ReminderController::class, 'apiListRules'], ['throttle:120,1', AuthMiddleware::class, 'perm:reminder.view|reminder.manage']);
+$router->post('/api/reminder-rules', [\App\Controllers\ReminderController::class, 'apiCreateRule'], ['throttle:60,1', AuthMiddleware::class, 'perm:reminder.manage']);
+$router->put('/api/reminder-rules/{id}', [\App\Controllers\ReminderController::class, 'apiUpdateRule'], ['throttle:60,1', AuthMiddleware::class, 'perm:reminder.manage']);
+$router->post('/api/reminder-rules/{id}', [\App\Controllers\ReminderController::class, 'apiUpdateRule'], ['throttle:60,1', AuthMiddleware::class, 'perm:reminder.manage']);
+$router->post('/api/reminder-rules/{id}/toggle', [\App\Controllers\ReminderController::class, 'apiToggleRule'], ['throttle:60,1', AuthMiddleware::class, 'perm:reminder.manage']);
+$router->delete('/api/reminder-rules/{id}', [\App\Controllers\ReminderController::class, 'apiDeleteRule'], ['throttle:60,1', AuthMiddleware::class, 'perm:reminder.manage']);
+$router->post('/api/reminder-rules/{id}/delete', [\App\Controllers\ReminderController::class, 'apiDeleteRule'], ['throttle:60,1', AuthMiddleware::class, 'perm:reminder.manage']);
+
 // Root redirect to dashboard or login
 $router->get('/', static function (): void {
     Response::redirect('/login');
 });
+
 
 

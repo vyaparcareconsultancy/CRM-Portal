@@ -18,4 +18,13 @@ abstract class BaseModel extends Model
     {
         return $this->insert($data);
     }
+
+    /**
+     * Convenient alias for softDelete() / delete.
+     */
+    public function delete(int|string $id): bool
+    {
+        return $this->softDelete($id);
+    }
 }
+

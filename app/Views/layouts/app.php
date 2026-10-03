@@ -69,14 +69,24 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
                 <?php endif; ?>
                 <?php endif; ?>
 
+                <?php if (can('followup.manage') || can('reminder.view') || can('reminder.manage')): ?>
+                <li class="menu-label">Activity & Deadlines</li>
                 <?php if (can('followup.manage')): ?>
-                <li class="menu-label">Activity</li>
                 <li>
                     <a href="/follow-ups" class="sidebar-link <?= $currentPath === '/follow-ups' ? 'active' : '' ?>">
                         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                         <span>Follow-ups</span>
                     </a>
                 </li>
+                <?php endif; ?>
+                <?php if (can('reminder.view') || can('reminder.manage')): ?>
+                <li>
+                    <a href="/reminders" class="sidebar-link <?= ($currentPath ?? '') === '/reminders' ? 'active' : '' ?>">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span>Reminders & Deadlines</span>
+                    </a>
+                </li>
+                <?php endif; ?>
                 <?php endif; ?>
 
                 <?php if (can('payment.view')): ?>

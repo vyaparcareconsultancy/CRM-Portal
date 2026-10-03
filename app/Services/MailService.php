@@ -274,4 +274,89 @@ class MailService
 
         return false;
     }
+
+    /**
+     * Send automated reminder notification email.
+     */
+    public static function sendReminder(
+        string $toEmail,
+        string $recipientName,
+        string $title,
+        string $description,
+        ?string $dueDate = null
+    ): bool {
+        $appDebug = filter_var($_ENV['APP_DEBUG'] ?? 'false', FILTER_VALIDATE_BOOLEAN);
+        $mailHost = $_ENV['MAIL_HOST'] ?? '';
+        $fromAddress = $_ENV['MAIL_FROM_ADDRESS'] ?? 'notifications@crm.local';
+        $fromName = $_ENV['MAIL_FROM_NAME'] ?? 'CRM Reminder Alert';
+
+        $isConfigured = !empty($mailHost)
+            && $mailHost !== 'null'
+            && !empty($_ENV['MAIL_USERNAME'])
+            && $_ENV['MAIL_USERNAME'] !== 'null';
+
+        $subject = "Reminder: {$title}" . ($dueDate ? " [Due: {$dueDate}]" : "");
+
+        $htmlBody = "
+            <div style='font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;'>
+                <h2 style='color: #0f2c59; margin-top: 0;'>Important Reminder Notice</h2>
+                <p>Hello <strong>" . htmlspecialchars($recipientName) . "</strong>,</p>
+                <div style='background-color: #f7fafc; padding: 15px; border-left: 4px solid #3182ce; margin: 15px 0;'>
+                    <h3 style='margin: 0 0 10px 0; color: #2d3748;'>" . htmlspecialchars($title) . "</h3>
+                    <p style='margin: 0; color: #4a5568;'>" . nl2br(htmlspecialchars($description)) . "</p>
+                    " . ($dueDate ? "<p style='margin: 10px 0 0 0; font-weight: bold; color: #c53030;'>Due Date: " . htmlspecialchars($dueDate) . "</p>" : "") . "
+                </div>
+                <p style='color: #718096; font-size: 13px; margin-top: 25px;'>Best Regards,<br>Compliance & Support Desk</p>
+            </div>
+        ";
+
+        $altBody = "Hello {$recipientName},\n\nReminder: {$title}\n{$description}\n" . ($dueDate ? "Due Date: {$dueDate}\n\n" : "\n") . "Best Regards,\nSupport Desk";
+
+        if ($isConfigured && class_exists(\PHPMailer\PHPMailer\PHPMailer::class)) {
+            try {
+                $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+                $mail->isSMTP();
+                $mail->Host = (string)$mailHost;
+                $mail->Port = (int)($_ENV['MAIL_PORT'] ?? 587);
+
+                if (!empty($_ENV['MAIL_USERNAME']) && $_ENV['MAIL_USERNAME'] !== 'null') {
+                    $mail->SMTPAuth = true;
+                    $mail->Username = (string)$_ENV['MAIL_USERNAME'];
+                    $mail->Password = (string)($_ENV['MAIL_PASSWORD'] ?? '');
+                } else {
+                    $mail->SMTPAuth = false;
+                }
+
+                $encryption = strtolower((string)($_ENV['MAIL_ENCRYPTION'] ?? ''));
+                if ($encryption === 'tls') {
+                    $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+                } elseif ($encryption === 'ssl') {
+                    $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
+                }
+
+                $mail->setFrom($fromAddress, $fromName);
+                $mail->addAddress($toEmail, $recipientName);
+                $mail->isHTML(true);
+                $mail->Subject = $subject;
+                $mail->Body = $htmlBody;
+                $mail->AltBody = $altBody;
+
+                $mail->send();
+                return true;
+            } catch (Throwable $e) {
+                Logger::error("Failed to send reminder email to {$toEmail}: " . $e->getMessage());
+            }
+        }
+
+        if ($appDebug || !$isConfigured) {
+            Logger::info("[DEV EMAIL] Reminder sent to {$toEmail}: {$title}", [
+                'recipient' => $toEmail,
+                'title' => $title,
+                'due_date' => $dueDate,
+            ]);
+            return true;
+        }
+
+        return false;
+    }
 }
