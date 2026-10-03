@@ -59,6 +59,12 @@ for ($i = 0; $i < $maxJobs; $i++) {
         $job = $queue->pop('export');
     }
     if ($job === null) {
+        $job = $queue->pop('broadcast');
+    }
+    if ($job === null) {
+        $job = $queue->pop('message');
+    }
+    if ($job === null) {
         break; // No more jobs
     }
 

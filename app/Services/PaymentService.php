@@ -147,6 +147,14 @@ class PaymentService
             'student_id' => $studentId,
         ]);
 
+        // Phase 9: Automated omnichannel payment confirmation and receipt dispatch
+        try {
+            $msgService = new \App\Services\Messaging\MessageService();
+            $msgService->onPaymentReceived($paymentId);
+        } catch (\Throwable $e) {
+            \App\Core\Logger::error("Failed to dispatch automated payment receipt for #{$paymentId}: " . $e->getMessage());
+        }
+
         return $this->paymentModel->findWithDetails($paymentId) ?: [];
     }
 

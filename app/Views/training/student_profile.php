@@ -23,6 +23,10 @@ $financials = $profile['financials'] ?? null;
             <h1 class="h3 fw-bold text-gray-800 mb-0"><?= htmlspecialchars((string)($st['name'] ?? 'Student Profile')) ?></h1>
         </div>
         <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-primary d-flex align-items-center gap-1" onclick="openProfileMessageModal('student', <?= (int)($st['id'] ?? 0) ?>, '<?= htmlspecialchars((string)($st['name'] ?? ''), ENT_QUOTES) ?>', '<?= htmlspecialchars((string)($st['email'] ?? ''), ENT_QUOTES) ?>', '<?= htmlspecialchars((string)($st['whatsapp_number'] ?? $st['mobile'] ?? ''), ENT_QUOTES) ?>')">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                <span>Send Message</span>
+            </button>
             <a href="/attendance" class="btn btn-outline-success">
                 <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" class="me-1"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
                 Mark Attendance
@@ -669,4 +673,5 @@ async function issueCertificate(enrollmentId, studentName) {
     }
 }
 </script>
+<?php require_once dirname(__DIR__) . '/partials/profile_message_modal.php'; ?>
 <?php endif; ?>

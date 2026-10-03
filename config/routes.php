@@ -427,6 +427,26 @@ $router->get('/reports', [\App\Controllers\ReportController::class, 'index'], [A
 $router->get('/api/reports/data', [\App\Controllers\ReportController::class, 'apiData'], ['throttle:120,1', AuthMiddleware::class, 'perm:report.view_financial|report.view_academic|report.view_leads']);
 $router->get('/api/reports/export', [\App\Controllers\ReportController::class, 'export'], ['throttle:60,1', AuthMiddleware::class, 'perm:report.view_financial|report.view_academic|report.view_leads']);
 
+// Phase 9: Omnichannel Messaging Web View
+$router->get('/messages', [\App\Controllers\MessageController::class, 'index'], [AuthMiddleware::class, 'perm:message.send|lead.manage|client.manage']);
+
+// Phase 9: Messaging & Delivery APIs
+$router->get('/api/messages/providers', [\App\Controllers\MessageController::class, 'apiProviders'], ['throttle:120,1', AuthMiddleware::class]);
+$router->post('/api/messages/send', [\App\Controllers\MessageController::class, 'apiSend'], ['throttle:60,1', AuthMiddleware::class, 'perm:message.send|lead.manage|client.manage']);
+$router->post('/api/messages/broadcast', [\App\Controllers\MessageController::class, 'apiBroadcast'], ['throttle:30,1', AuthMiddleware::class, 'perm:message.send']);
+$router->get('/api/message-logs', [\App\Controllers\MessageController::class, 'apiLogs'], ['throttle:120,1', AuthMiddleware::class]);
+
+// Phase 9: Message Templates Management API
+$router->get('/api/message-templates', [\App\Controllers\MessageController::class, 'apiListTemplates'], ['throttle:120,1', AuthMiddleware::class]);
+$router->post('/api/message-templates', [\App\Controllers\MessageController::class, 'apiCreateTemplate'], ['throttle:60,1', AuthMiddleware::class, 'perm:template.manage']);
+$router->post('/api/message-templates/{id}', [\App\Controllers\MessageController::class, 'apiUpdateTemplate'], ['throttle:60,1', AuthMiddleware::class, 'perm:template.manage']);
+$router->delete('/api/message-templates/{id}', [\App\Controllers\MessageController::class, 'apiDeleteTemplate'], ['throttle:60,1', AuthMiddleware::class, 'perm:template.manage']);
+$router->post('/api/message-templates/{id}/delete', [\App\Controllers\MessageController::class, 'apiDeleteTemplate'], ['throttle:60,1', AuthMiddleware::class, 'perm:template.manage']);
+
+// Phase 9: Channel Opt-Out Management API
+$router->get('/api/messages/opt-outs', [\App\Controllers\MessageController::class, 'apiListOptOuts'], ['throttle:120,1', AuthMiddleware::class]);
+$router->post('/api/messages/opt-out', [\App\Controllers\MessageController::class, 'apiToggleOptOut'], ['throttle:60,1', AuthMiddleware::class]);
+
 // Root redirect to dashboard or login
 $router->get('/', static function (): void {
     Response::redirect('/login');

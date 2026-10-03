@@ -23,6 +23,11 @@
                     <span>Directory</span>
                 </a>
 
+                <button type="button" class="btn btn-outline-primary d-flex align-items-center gap-1" onclick="openProfileMessageModal('client', <?= (int)($clientId ?? 0) ?>, clientData?.name || '', clientData?.email || '', clientData?.phone || '')">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                    <span>Send Message</span>
+                </button>
+
                 <?php if (can('client.edit')): ?>
                 <a href="/clients/<?= (int)($clientId ?? 0) ?>/edit" class="btn btn-primary d-flex align-items-center gap-1" id="openEditBtn">
                     <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -1001,3 +1006,5 @@
 
 <!-- Include Phase 3 Interactive Client Services Script -->
 <script src="/assets/js/client-services.js"></script>
+
+<?php require_once dirname(__DIR__) . '/partials/profile_message_modal.php'; ?>

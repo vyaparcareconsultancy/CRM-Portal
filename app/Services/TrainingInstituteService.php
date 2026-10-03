@@ -465,6 +465,14 @@ class TrainingInstituteService
         // 6. Update student status to active
         $this->studentModel->update($studentId, ['status' => 'active']);
 
+        // Phase 9: Automated omnichannel admission confirmation message
+        try {
+            $msgService = new \App\Services\Messaging\MessageService();
+            $msgService->onAdmissionConfirmed($enrollmentId);
+        } catch (\Throwable $e) {
+            \App\Core\Logger::error("Failed to dispatch automated admission confirmation for #{$enrollmentId}: " . $e->getMessage());
+        }
+
         return $this->enrollmentModel->findWithDetails($enrollmentId);
     }
 

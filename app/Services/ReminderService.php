@@ -498,33 +498,22 @@ class ReminderService
                 $inAppCount++;
             }
 
-            // 2. Email channel (to client/student and/or assigned staff)
-            if (in_array('email', $channels, true)) {
-                $recipientEmail = null;
-                $recipientName = null;
-
-                if ($rem['entity_type'] === 'client' && !empty($rem['client_email'])) {
-                    $recipientEmail = $rem['client_email'];
-                    $recipientName = $rem['client_name'] ?? 'Client';
-                } elseif ($rem['entity_type'] === 'student' && !empty($rem['student_email'])) {
-                    $recipientEmail = $rem['student_email'];
-                    $recipientName = $rem['student_name'] ?? 'Student';
-                }
-
-                if ($recipientEmail) {
-                    MailService::sendReminder(
-                        $recipientEmail,
-                        $recipientName,
-                        $rem['title'],
-                        $rem['description'] ?? '',
-                        $rem['due_date']
-                    );
-                    $sentLog['email'] = date('Y-m-d H:i:s');
-                    $emailCount++;
+            // Phase 9 Omnichannel Message Layer dispatch (email, whatsapp, sms)
+            $externalChannels = array_values(array_intersect($channels, ['email', 'whatsapp', 'sms']));
+            if (!empty($externalChannels)) {
+                try {
+                    $msgService = new \App\Services\Messaging\MessageService();
+                    $msgResults = $msgService->onReminderTriggered($remId, $externalChannels);
+                    foreach ($msgResults as $ch => $res) {
+                        if (!empty($res['success'])) {
+                            $sentLog[$ch] = date('Y-m-d H:i:s');
+                            if ($ch === 'email') $emailCount++;
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    \App\Core\Logger::error("Failed to dispatch omnichannel reminder for #{$remId}: " . $e->getMessage());
                 }
             }
-
-            // Note: WhatsApp and SMS channels are deferred until Phase 9 message layer as required.
 
             // Update reminder status
             $stmt = $this->pdo->prepare("
