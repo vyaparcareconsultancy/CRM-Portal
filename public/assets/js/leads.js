@@ -475,6 +475,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('openCreateLeadModalBtn')?.addEventListener('click', () => {
         document.getElementById('leadModalTitle').textContent = 'New Lead Registration';
         document.getElementById('leadId').value = '';
+        document.getElementById('leadMessageBtn')?.classList.add('d-none');
         document.getElementById('leadForm').reset();
         document.getElementById('leadWhatsappSame').checked = true;
         document.getElementById('referredByGroup').style.display = 'none';
@@ -496,6 +497,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             document.getElementById('leadModalTitle').textContent = `Edit Lead (${lead.lead_code})`;
             document.getElementById('leadId').value = lead.id;
+            document.getElementById('leadMessageBtn')?.classList.remove('d-none');
             document.getElementById('leadName').value = lead.name || '';
             document.getElementById('leadMobile').value = lead.mobile || '';
             document.getElementById('leadWhatsapp').value = lead.whatsapp_number || lead.mobile || '';

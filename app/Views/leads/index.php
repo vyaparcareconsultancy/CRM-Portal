@@ -291,9 +291,17 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-top bg-light">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="saveLeadBtn">Save Lead</button>
+                <div class="modal-footer border-top bg-light d-flex justify-content-between">
+                    <div>
+                        <button type="button" class="btn btn-outline-primary d-none" id="leadMessageBtn" onclick="openProfileMessageModal('lead', document.getElementById('leadId').value, document.getElementById('leadName').value, document.getElementById('leadEmail').value, document.getElementById('leadWhatsapp').value || document.getElementById('leadMobile').value)">
+                            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                            <span>Send Message</span>
+                        </button>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="saveLeadBtn">Save Lead</button>
+                    </div>
                 </div>
             </form>
         </div>
@@ -516,3 +524,5 @@
         </div>
     </div>
 </div>
+
+<?php require_once dirname(__DIR__) . '/partials/profile_message_modal.php'; ?>

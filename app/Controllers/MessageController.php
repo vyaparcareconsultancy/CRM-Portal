@@ -49,7 +49,7 @@ class MessageController
         $recentLogs = $this->logModel->getLogs([], 25, 0);
         $optOuts = $this->optOutModel->getOptOuts([]);
 
-        View::render('messages/index', [
+        Response::view('messages/index', [
             'pageTitle' => 'Omnichannel Messaging Hub',
             'currentPath' => '/messages',
             'providerStatuses' => $providerStatuses,
