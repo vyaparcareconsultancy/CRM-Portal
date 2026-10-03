@@ -37,8 +37,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             renderHeader(clientData);
             renderOverview(clientData);
-            renderDocuments(documents);
-            renderTimeline(activities);
+            loadDocuments();
+            loadTimeline(currentTimelineFilter);
             loadClientFollowUps();
         } catch (err) {
             console.error('Error loading client profile:', err);
@@ -179,6 +179,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (el) el.textContent = text || '-';
     }
 
+    let currentTimelineFilter = 'all';
+
+    async function loadDocuments() {
+        try {
+            const res = await api.get(`/api/documents?entity_type=client&entity_id=${clientId}`);
+            const docs = res?.data || [];
+            renderDocuments(docs);
+        } catch (err) {
+            console.error('Failed to load documents:', err);
+        }
+    }
+
     function renderDocuments(docs) {
         const countBadge = document.getElementById('docsCountBadge');
         if (countBadge) countBadge.textContent = docs.length;
@@ -187,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!tbody) return;
 
         if (!docs || docs.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No documents uploaded.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No documents uploaded.</td></tr>';
             return;
         }
 
@@ -196,23 +208,46 @@ document.addEventListener('DOMContentLoaded', () => {
             const kb = (d.size_bytes / 1024).toFixed(1);
             const sizeStr = kb > 1024 ? (kb / 1024).toFixed(2) + ' MB' : kb + ' KB';
             const dateStr = (d.created_at || '').substring(0, 10);
+            const docTypeLabel = (d.document_type || 'other').replace(/_/g, ' ').toUpperCase();
+
+            let typeBadgeClass = 'bg-secondary';
+            if (d.document_type === 'pan') typeBadgeClass = 'bg-primary';
+            else if (d.document_type === 'aadhaar') typeBadgeClass = 'bg-dark';
+            else if (d.document_type === 'gst_certificate') typeBadgeClass = 'bg-success';
+            else if (d.document_type === 'itr') typeBadgeClass = 'bg-info text-dark';
+            else if (d.document_type === 'bank_statement_cheque') typeBadgeClass = 'bg-warning text-dark';
+
+            const docNumber = d.document_number ? UI.escape(d.document_number) : '<span class="text-muted">-</span>';
+            const fyExp = (d.financial_year ? `FY: ${UI.escape(d.financial_year)}` : '') + 
+                          (d.expiry_date ? ` (Exp: ${d.expiry_date})` : '') || '<span class="text-muted">-</span>';
+
+            const canDownload = d.can_download !== false;
+            const downloadBtn = canDownload
+                ? `<a href="/api/documents/${d.id}/download" target="_blank" class="btn btn-outline-secondary" title="Download Document">
+                       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                   </a>`
+                : `<button type="button" class="btn btn-outline-secondary disabled" title="Aadhaar files viewable only by Admin/Accountant" disabled>
+                       <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                   </button>`;
 
             html += `<tr>
                 <td>
                     <div class="d-flex align-items-center gap-2">
                         <svg class="text-primary flex-shrink-0" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                        <span class="fw-medium text-truncate" style="max-width: 220px;">${UI.escape(d.original_name)}</span>
+                        <div>
+                            <span class="fw-semibold text-dark d-block">${UI.escape(d.title || d.original_name)}</span>
+                            <small class="text-muted">${UI.escape(d.original_name)} • ${sizeStr}</small>
+                        </div>
                     </div>
                 </td>
-                <td><small class="text-muted font-monospace">${UI.escape(d.mime_type)}</small></td>
-                <td><small class="text-muted">${sizeStr}</small></td>
+                <td><span class="badge ${typeBadgeClass} font-monospace" style="font-size: 0.7rem;">${docTypeLabel}</span></td>
+                <td><span class="font-monospace small">${docNumber}</span></td>
+                <td><small class="text-muted">${fyExp}</small></td>
                 <td><small class="text-muted">${dateStr}</small></td>
                 <td class="text-end">
                     <div class="btn-group btn-group-sm">
-                        <a href="/api/clients/${clientId}/documents/${d.id}" target="_blank" class="btn btn-outline-secondary" title="Download">
-                            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-                        </a>
-                        <button type="button" class="btn btn-outline-danger delete-doc-btn" data-id="${d.id}" data-name="${UI.escape(d.original_name)}" title="Delete">
+                        ${downloadBtn}
+                        <button type="button" class="btn btn-outline-danger delete-doc-btn" data-id="${d.id}" data-name="${UI.escape(d.title || d.original_name)}" title="Delete">
                             &times;
                         </button>
                     </div>
@@ -222,42 +257,71 @@ document.addEventListener('DOMContentLoaded', () => {
         tbody.innerHTML = html;
     }
 
-    function renderTimeline(activities) {
-        const container = document.getElementById('activityTimelineList');
+    // Unified Timeline Loader & Renderer
+    async function loadTimeline(filter = 'all') {
+        const container = document.getElementById('unifiedTimelineList') || document.getElementById('activityTimelineList');
         if (!container) return;
 
-        if (!activities || activities.length === 0) {
-            container.innerHTML = '<div class="text-muted text-center py-3">No activity yet</div>';
+        try {
+            const res = await api.get(`/api/timeline?entity_type=client&entity_id=${clientId}&filter=${encodeURIComponent(filter)}`);
+            const events = res?.data || [];
+            renderUnifiedTimeline(events, container);
+        } catch (err) {
+            console.error('Failed to load timeline:', err);
+            container.innerHTML = '<div class="text-danger text-center py-3 small">Failed to load timeline events.</div>';
+        }
+    }
+
+    function renderUnifiedTimeline(events, container) {
+        if (!events || events.length === 0) {
+            container.innerHTML = '<div class="text-muted text-center py-4 small">No events recorded for this client.</div>';
             return;
         }
 
         let html = '<div class="list-group list-group-flush">';
-        activities.forEach(a => {
-            const timeStr = (a.created_at || '').substring(0, 16);
-            let actionBadge = '<span class="badge bg-secondary">Event</span>';
-            let description = '';
+        events.forEach(ev => {
+            const timeStr = (ev.timestamp || '').substring(0, 16);
+            const isPinned = ev.is_pinned;
+            const isNote = ev.type === 'note';
 
-            switch (a.action) {
-                case 'create':
-                    actionBadge = '<span class="badge bg-primary">Registered</span>';
-                    description = 'New client record created.';
-                    break;
-                case 'update':
-                    actionBadge = '<span class="badge bg-info text-dark">Updated</span>';
-                    description = 'Client details modified.';
-                    break;
-                case 'document_upload':
-                    actionBadge = '<span class="badge bg-success">Uploaded Doc</span>';
-                    description = 'Document attachment added.';
-                    break;
-                case 'document_delete':
-                    actionBadge = '<span class="badge bg-warning text-dark">Removed Doc</span>';
-                    description = 'Document attachment removed.';
-                    break;
-                case 'delete':
-                    actionBadge = '<span class="badge bg-danger">Deleted</span>';
-                    description = 'Client marked as soft-deleted.';
-                    break;
+            // Highlight @mentions in description
+            let formattedDesc = UI.escape(ev.description || '');
+            formattedDesc = formattedDesc.replace(/@([a-zA-Z0-9_\.-]+)/g, '<span class="badge bg-primary-subtle text-primary border border-primary-subtle">@$1</span>');
+
+            let actionTools = '';
+            if (isNote) {
+                const noteId = ev.metadata?.note_id || ev.source_id;
+                actionTools = `
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-link text-warning p-0 me-2 toggle-pin-note-btn" data-id="${noteId}" title="${isPinned ? 'Unpin' : 'Pin to top'}">
+                            ${isPinned ? '★' : '☆'}
+                        </button>
+                        <button type="button" class="btn btn-link text-danger p-0 delete-note-btn" data-id="${noteId}" title="Delete note">
+                            &times;
+                        </button>
+                    </div>
+                `;
+            }
+
+            html += `<div class="list-group-item px-0 py-2 border-bottom ${isPinned ? 'bg-warning-subtle p-2 rounded mb-1 border' : ''}">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <div class="d-flex align-items-center gap-1">
+                        <span class="badge ${ev.badge_class || 'bg-secondary'}" style="font-size: 0.65rem;">${UI.escape(ev.type.toUpperCase())}</span>
+                        ${isPinned ? '<span class="badge bg-warning text-dark small" style="font-size: 0.65rem;">PINNED</span>' : ''}
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-muted" style="font-size: 0.72rem;">${timeStr}</span>
+                        ${actionTools}
+                    </div>
+                </div>
+                <div class="fw-semibold small text-dark">${UI.escape(ev.title)}</div>
+                <div class="small text-muted text-break my-1">${formattedDesc}</div>
+                <div class="text-muted" style="font-size: 0.72rem;">By: <strong>${UI.escape(ev.author_name || 'System')}</strong></div>
+            </div>`;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    }
                 case 'dpdp_anonymize':
                     actionBadge = '<span class="badge bg-dark">DPDP Erasure</span>';
                     description = 'Client personal data permanently anonymized.';
@@ -409,15 +473,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!confirm(`Delete document "${docName}"?`)) return;
 
         try {
-            await api.delete(`/api/clients/${clientId}/documents/${docId}`);
+            await api.delete(`/api/documents/${docId}`);
             UI.toast('Document deleted successfully.', 'success');
-            loadProfile();
+            loadDocuments();
+            loadTimeline(currentTimelineFilter);
         } catch (err) {
             UI.toast(err.message || 'Failed to delete document.', 'danger');
         }
     });
 
-    // Upload Document Handling
+    // Upload Document Handling (Phase 6: KYC / Statutory Documents)
     const openUploadBtn = document.getElementById('openUploadDocBtn');
     if (openUploadBtn) {
         openUploadBtn.addEventListener('click', () => {
@@ -441,10 +506,17 @@ document.addEventListener('DOMContentLoaded', () => {
         UI.buttonLoading(submitBtn, true, 'Uploading...');
         const formData = new FormData();
         formData.append('document', fileInput.files[0]);
+        formData.append('entity_type', 'client');
+        formData.append('entity_id', clientId);
+        formData.append('document_type', document.getElementById('docTypeSelect')?.value || 'other');
+        formData.append('title', document.getElementById('docTitleInput')?.value || '');
+        formData.append('document_number', document.getElementById('docNumberInput')?.value || '');
+        formData.append('financial_year', document.getElementById('docFyInput')?.value || '');
+        formData.append('expiry_date', document.getElementById('docExpiryInput')?.value || '');
 
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
-            const res = await fetch(`/api/clients/${clientId}/documents`, {
+            const res = await fetch('/api/documents/upload', {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',
@@ -456,10 +528,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const data = await res.json();
             if (res.ok && data.status === 'success') {
-                UI.toast('Document uploaded successfully!', 'success');
+                UI.toast('Document uploaded securely!', 'success');
                 const modalEl = document.getElementById('uploadDocumentModal');
                 if (modalEl) bootstrap.Modal.getOrCreateInstance(modalEl).hide();
-                loadProfile();
+                loadDocuments();
+                loadTimeline(currentTimelineFilter);
             } else {
                 UI.toast(data.message || 'Document upload failed.', 'danger');
             }
@@ -467,6 +540,82 @@ document.addEventListener('DOMContentLoaded', () => {
             UI.toast('Network error during upload.', 'danger');
         } finally {
             UI.buttonLoading(submitBtn, false);
+        }
+    });
+
+    // Quick Add Note Form Handling (@mentions and notifications)
+    document.getElementById('quickAddNoteForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const noteInput = document.getElementById('quickNoteText');
+        const pinInput = document.getElementById('quickNotePin');
+        const submitBtn = document.getElementById('submitQuickNoteBtn');
+
+        const noteText = noteInput?.value?.trim() || '';
+        if (noteText === '') {
+            UI.toast('Please enter note content.', 'warning');
+            return;
+        }
+
+        UI.buttonLoading(submitBtn, true, 'Adding...');
+        try {
+            await api.post('/api/timeline/notes', {
+                entity_type: 'client',
+                entity_id: clientId,
+                note: noteText,
+                is_pinned: pinInput?.checked ? 1 : 0
+            });
+            UI.toast('Note added successfully!', 'success');
+            if (noteInput) noteInput.value = '';
+            if (pinInput) pinInput.checked = false;
+            loadTimeline(currentTimelineFilter);
+        } catch (err) {
+            UI.toast(err.message || 'Failed to add note.', 'danger');
+        } finally {
+            UI.buttonLoading(submitBtn, false);
+        }
+    });
+
+    // Timeline Filter Menu Handling
+    document.getElementById('timelineFilterMenu')?.addEventListener('click', (e) => {
+        const item = e.target.closest('.timeline-filter-opt');
+        if (!item) return;
+        e.preventDefault();
+
+        document.querySelectorAll('.timeline-filter-opt').forEach(el => el.classList.remove('active'));
+        item.classList.add('active');
+
+        currentTimelineFilter = item.dataset.filter || 'all';
+        const labelEl = document.getElementById('currentTimelineFilterLabel');
+        if (labelEl) labelEl.textContent = item.textContent.trim();
+
+        loadTimeline(currentTimelineFilter);
+    });
+
+    // Toggle Pin & Delete Note Event Delegation
+    document.getElementById('unifiedTimelineList')?.addEventListener('click', async (e) => {
+        const pinBtn = e.target.closest('.toggle-pin-note-btn');
+        if (pinBtn) {
+            const id = pinBtn.dataset.id;
+            try {
+                await api.post(`/api/timeline/notes/${id}/pin`);
+                loadTimeline(currentTimelineFilter);
+            } catch (err) {
+                UI.toast(err.message || 'Failed to toggle pin.', 'danger');
+            }
+            return;
+        }
+
+        const delBtn = e.target.closest('.delete-note-btn');
+        if (delBtn) {
+            const id = delBtn.dataset.id;
+            if (!confirm('Are you sure you want to delete this note?')) return;
+            try {
+                await api.delete(`/api/timeline/notes/${id}`);
+                UI.toast('Note deleted.', 'success');
+                loadTimeline(currentTimelineFilter);
+            } catch (err) {
+                UI.toast(err.message || 'Failed to delete note.', 'danger');
+            }
         }
     });
 

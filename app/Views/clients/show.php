@@ -330,15 +330,16 @@
                                     <table class="table align-middle mb-0" id="documentsTable">
                                         <thead class="table-light">
                                             <tr>
-                                                <th>File Name</th>
+                                                <th>Document & Title</th>
                                                 <th>Type</th>
-                                                <th>Size</th>
+                                                <th>Doc Number</th>
+                                                <th>FY / Expiry</th>
                                                 <th>Uploaded</th>
                                                 <th class="text-end">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody id="documentsTableBody">
-                                            <tr><td colspan="5" class="text-center py-4 text-muted">No documents uploaded.</td></tr>
+                                            <tr><td colspan="6" class="text-center py-4 text-muted">No documents uploaded.</td></tr>
                                         </tbody>
                                     </table>
                                 </div>
@@ -517,14 +518,52 @@
                     </div>
                 </div>
 
-                <!-- Activity Log Timeline Card -->
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-white py-3 border-bottom">
-                        <h6 class="fw-bold mb-0 text-primary">Activity Timeline</h6>
+                <!-- Unified Activity Timeline & Notes Card -->
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                        <h6 class="fw-bold mb-0 text-primary">Unified Timeline & Notes</h6>
+                        <!-- Timeline Type Filter -->
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="timelineFilterBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                                Filter: <span id="currentTimelineFilterLabel">All</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm" id="timelineFilterMenu" aria-labelledby="timelineFilterBtn">
+                                <li><a class="dropdown-item active timeline-filter-opt" href="#" data-filter="all">All Events</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item timeline-filter-opt" href="#" data-filter="note">Notes (@mentions)</a></li>
+                                <li><a class="dropdown-item timeline-filter-opt" href="#" data-filter="call">Calls</a></li>
+                                <li><a class="dropdown-item timeline-filter-opt" href="#" data-filter="followup">Follow-ups</a></li>
+                                <li><a class="dropdown-item timeline-filter-opt" href="#" data-filter="payment">Payments</a></li>
+                                <li><a class="dropdown-item timeline-filter-opt" href="#" data-filter="document">Documents</a></li>
+                                <li><a class="dropdown-item timeline-filter-opt" href="#" data-filter="status">Status Changes</a></li>
+                                <li><a class="dropdown-item timeline-filter-opt" href="#" data-filter="message">Messages Sent</a></li>
+                            </ul>
+                        </div>
                     </div>
-                    <div class="card-body p-3" style="max-height: 420px; overflow-y: auto;">
-                        <div id="activityTimelineList" class="timeline small">
-                            <div class="text-muted text-center py-3">Loading activity history...</div>
+
+                    <!-- Quick Add Note Box -->
+                    <div class="p-3 border-bottom bg-light">
+                        <form id="quickAddNoteForm">
+                            <div class="mb-2">
+                                <textarea class="form-control form-control-sm" id="quickNoteText" rows="2" placeholder="Write a note... Use @name to mention team members" required></textarea>
+                            </div>
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="form-check form-check-inline mb-0">
+                                    <input class="form-check-input" type="checkbox" id="quickNotePin">
+                                    <label class="form-check-label small text-muted" for="quickNotePin">Pin to top</label>
+                                </div>
+                                <button type="submit" class="btn btn-sm btn-primary d-flex align-items-center gap-1" id="submitQuickNoteBtn">
+                                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
+                                    <span>Add Note</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Timeline Items Stream -->
+                    <div class="card-body p-3" style="max-height: 480px; overflow-y: auto;">
+                        <div id="unifiedTimelineList" class="timeline small">
+                            <div class="text-muted text-center py-3">Loading timeline events...</div>
                         </div>
                     </div>
                 </div>
@@ -788,7 +827,7 @@
 <!-- MODALS FOR ORIGINAL OVERVIEW, DOCS, FOLLOW-UPS           -->
 <!-- ======================================================== -->
 
-<!-- Upload Document Modal -->
+<!-- Upload Document Modal (Phase 6: KYC & Statutory Documents) -->
 <div class="modal fade" id="uploadDocumentModal" tabindex="-1" aria-labelledby="uploadDocModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
@@ -799,14 +838,52 @@
             <form id="uploadDocForm">
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="singleDocInput" class="form-label fw-semibold">Select File (PDF, JPG, PNG)</label>
-                        <input class="form-control" type="file" id="singleDocInput" name="document" accept=".pdf,.jpg,.jpeg,.png" required>
-                        <div class="form-text small">Maximum file size: 5 MB.</div>
+                        <label for="docTypeSelect" class="form-label fw-semibold">Document Type <span class="text-danger">*</span></label>
+                        <select class="form-select" id="docTypeSelect" name="document_type" required>
+                            <option value="pan">PAN Card (Encrypted at rest)</option>
+                            <option value="aadhaar">Aadhaar Card (Masked last 4 digits, Admin/Accountant only)</option>
+                            <option value="gst_certificate">GST Certificate</option>
+                            <option value="bank_statement_cheque">Bank Statement / Cancelled Cheque (Encrypted at rest)</option>
+                            <option value="itr">Income Tax Return (ITR) (Encrypted at rest)</option>
+                            <option value="photo">Photo</option>
+                            <option value="other" selected>Other Document</option>
+                        </select>
+                        <div class="form-text text-muted small" id="docTypeHelp">Sensitive files (Aadhaar, PAN, Bank, ITR) are encrypted at rest.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="docTitleInput" class="form-label fw-semibold">Document Title</label>
+                        <input type="text" class="form-control" id="docTitleInput" name="title" placeholder="e.g. Director Aadhaar, FY25-26 ITR-V">
+                    </div>
+
+                    <div class="mb-3" id="docNumberWrapper">
+                        <label for="docNumberInput" class="form-label fw-semibold">Document / ID Number</label>
+                        <input type="text" class="form-control font-monospace" id="docNumberInput" name="document_number" placeholder="e.g. ABCDE1234F or 1234 5678 9012">
+                        <div class="form-text small text-warning-emphasis" id="docNumberHelp">
+                            Note: For Aadhaar, only the last 4 digits (e.g. XXXX-XXXX-1234) are stored in the database.
+                        </div>
+                    </div>
+
+                    <div class="row g-2 mb-3">
+                        <div class="col-sm-6">
+                            <label for="docFyInput" class="form-label fw-semibold">Financial Year</label>
+                            <input type="text" class="form-control font-monospace" id="docFyInput" name="financial_year" placeholder="e.g. 2025-26">
+                        </div>
+                        <div class="col-sm-6">
+                            <label for="docExpiryInput" class="form-label fw-semibold">Expiry Date (optional)</label>
+                            <input type="date" class="form-control" id="docExpiryInput" name="expiry_date">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="singleDocInput" class="form-label fw-semibold">Select File (PDF, JPG, PNG) <span class="text-danger">*</span></label>
+                        <input class="form-control" type="file" id="singleDocInput" name="document" accept=".pdf,.jpg,.jpeg,.png,.webp" required>
+                        <div class="form-text small">Maximum file size: 10 MB. Files are stored securely outside the web root.</div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="submitUploadDocBtn">Upload Document</button>
+                    <button type="submit" class="btn btn-primary" id="submitUploadDocBtn">Upload Securely</button>
                 </div>
             </form>
         </div>

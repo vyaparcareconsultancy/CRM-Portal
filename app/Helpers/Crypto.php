@@ -132,6 +132,81 @@ class Crypto
     }
 
     /**
+     * Mask Aadhaar number: strictly store and display only the last 4 digits (e.g. XXXX-XXXX-1234).
+     * Never stores or returns full Aadhaar number.
+     */
+    public static function maskAadhaar(?string $aadhaar): ?string
+    {
+        if ($aadhaar === null || trim($aadhaar) === '') {
+            return null;
+        }
+
+        $clean = preg_replace('/[^0-9]/', '', $aadhaar);
+        if ($clean === null || $clean === '') {
+            return 'XXXX-XXXX-XXXX';
+        }
+
+        if (strlen($clean) >= 4) {
+            return 'XXXX-XXXX-' . substr($clean, -4);
+        }
+
+        return str_repeat('X', strlen($clean));
+    }
+
+    /**
+     * Encrypt file data payload at rest using OpenSSL AES-256-GCM.
+     */
+    public static function encryptFile(string $data): string
+    {
+        $key = self::getKey();
+        $iv = random_bytes(self::IV_LENGTH);
+        $tag = '';
+
+        $cipherText = openssl_encrypt(
+            $data,
+            self::CIPHER,
+            $key,
+            OPENSSL_RAW_DATA,
+            $iv,
+            $tag,
+            '',
+            self::TAG_LENGTH
+        );
+
+        if ($cipherText === false) {
+            throw new \RuntimeException("File encryption failed.");
+        }
+
+        return $iv . $tag . $cipherText;
+    }
+
+    /**
+     * Decrypt file data payload from OpenSSL AES-256-GCM.
+     */
+    public static function decryptFile(string $payload): string
+    {
+        if (strlen($payload) < (self::IV_LENGTH + self::TAG_LENGTH)) {
+            return $payload;
+        }
+
+        $iv = substr($payload, 0, self::IV_LENGTH);
+        $tag = substr($payload, self::IV_LENGTH, self::TAG_LENGTH);
+        $cipherText = substr($payload, self::IV_LENGTH + self::TAG_LENGTH);
+        $key = self::getKey();
+
+        $plain = openssl_decrypt(
+            $cipherText,
+            self::CIPHER,
+            $key,
+            OPENSSL_RAW_DATA,
+            $iv,
+            $tag
+        );
+
+        return $plain !== false ? $plain : $payload;
+    }
+
+    /**
      * Check if a string is already masked.
      */
     public static function isMasked(?string $value): bool

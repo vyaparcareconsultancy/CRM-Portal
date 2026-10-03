@@ -384,8 +384,28 @@ $router->post('/api/enrollments/{id}/certificate', [\App\Controllers\TrainingCon
 $router->get('/api/students', [\App\Controllers\TrainingController::class, 'apiStudentsList'], ['throttle:120,1', AuthMiddleware::class, 'perm:student.view|student.view_assigned']);
 $router->get('/api/students/{id}/profile', [\App\Controllers\TrainingController::class, 'apiStudentProfile'], ['throttle:120,1', AuthMiddleware::class, 'perm:student.view|student.view_assigned']);
 
+// Phase 6: Documents API
+$router->get('/api/documents', [\App\Controllers\DocumentTimelineController::class, 'apiListDocuments'], ['throttle:120,1', AuthMiddleware::class, 'perm:document.view']);
+$router->post('/api/documents/upload', [\App\Controllers\DocumentTimelineController::class, 'apiUploadDocument'], ['throttle:60,1', AuthMiddleware::class, 'perm:document.manage']);
+$router->get('/api/documents/{id}/download', [\App\Controllers\DocumentTimelineController::class, 'downloadDocument'], ['throttle:120,1', AuthMiddleware::class, 'perm:document.view']);
+$router->delete('/api/documents/{id}', [\App\Controllers\DocumentTimelineController::class, 'apiDeleteDocument'], ['throttle:60,1', AuthMiddleware::class, 'perm:document.manage']);
+$router->post('/api/documents/{id}/delete', [\App\Controllers\DocumentTimelineController::class, 'apiDeleteDocument'], ['throttle:60,1', AuthMiddleware::class, 'perm:document.manage']);
+
+// Phase 6: Unified Timeline & Notes API
+$router->get('/api/timeline', [\App\Controllers\DocumentTimelineController::class, 'apiGetTimeline'], ['throttle:120,1', AuthMiddleware::class]);
+$router->post('/api/timeline/notes', [\App\Controllers\DocumentTimelineController::class, 'apiAddNote'], ['throttle:60,1', AuthMiddleware::class, 'perm:note.manage']);
+$router->post('/api/timeline/notes/{id}/pin', [\App\Controllers\DocumentTimelineController::class, 'apiTogglePinNote'], ['throttle:60,1', AuthMiddleware::class, 'perm:note.manage']);
+$router->delete('/api/timeline/notes/{id}', [\App\Controllers\DocumentTimelineController::class, 'apiDeleteNote'], ['throttle:60,1', AuthMiddleware::class, 'perm:note.manage']);
+$router->post('/api/timeline/notes/{id}/delete', [\App\Controllers\DocumentTimelineController::class, 'apiDeleteNote'], ['throttle:60,1', AuthMiddleware::class, 'perm:note.manage']);
+
+// Phase 6: In-App Notifications API
+$router->get('/api/notifications', [\App\Controllers\DocumentTimelineController::class, 'apiGetNotifications'], ['throttle:120,1', AuthMiddleware::class]);
+$router->post('/api/notifications/{id}/read', [\App\Controllers\DocumentTimelineController::class, 'apiMarkNotificationRead'], ['throttle:120,1', AuthMiddleware::class]);
+$router->post('/api/notifications/read-all', [\App\Controllers\DocumentTimelineController::class, 'apiMarkAllNotificationsRead'], ['throttle:120,1', AuthMiddleware::class]);
+
 // Root redirect to dashboard or login
 $router->get('/', static function (): void {
     Response::redirect('/login');
 });
+
 

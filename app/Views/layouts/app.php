@@ -175,13 +175,32 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
                     <?= e($pageHeading ?? ($title ?? 'Portal')) ?>
                 </div>
 
-                <div class="user-profile">
-                    <div class="user-avatar">
-                        <?= strtoupper(substr($userName, 0, 1)) ?>
+                <div class="d-flex align-items-center gap-3 ms-auto">
+                    <!-- Notifications Dropdown -->
+                    <div class="dropdown" id="notificationsDropdownWrapper">
+                        <button class="btn btn-light position-relative p-2 rounded-circle border" type="button" id="notificationsMenuBtn" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" id="notificationsUnreadBadge" style="display: none;">0</span>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end shadow-sm border p-0" style="width: 340px; max-height: 420px; overflow-y: auto;" aria-labelledby="notificationsMenuBtn">
+                            <div class="p-3 border-bottom d-flex align-items-center justify-content-between bg-light">
+                                <h6 class="fw-bold mb-0 text-dark small text-uppercase">Notifications</h6>
+                                <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 small text-primary" id="markAllNotificationsReadBtn">Mark all read</button>
+                            </div>
+                            <div id="notificationsListContainer">
+                                <div class="p-3 text-center text-muted small">No unread notifications</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="user-info d-none d-sm-block">
-                        <div class="user-name"><?= e($userName) ?></div>
-                        <div class="user-role badge bg-secondary-subtle text-secondary border"><?= e($userRole) ?></div>
+
+                    <div class="user-profile">
+                        <div class="user-avatar">
+                            <?= strtoupper(substr($userName, 0, 1)) ?>
+                        </div>
+                        <div class="user-info d-none d-sm-block">
+                            <div class="user-name"><?= e($userName) ?></div>
+                            <div class="user-role badge bg-secondary-subtle text-secondary border"><?= e($userRole) ?></div>
+                        </div>
                     </div>
                 </div>
             </header>
@@ -224,6 +243,71 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
     <?php endif; ?>
     <?= $pageScripts ?? '' ?>
 
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const badge = document.getElementById('notificationsUnreadBadge');
+        const container = document.getElementById('notificationsListContainer');
+        const markAllBtn = document.getElementById('markAllNotificationsReadBtn');
+
+        async function loadNotifications() {
+            if (!container) return;
+            try {
+                const res = await fetch('/api/notifications');
+                if (!res.ok) return;
+                const json = await res.json();
+                const list = json.data || [];
+
+                if (badge) {
+                    if (list.length > 0) {
+                        badge.textContent = list.length > 99 ? '99+' : list.length;
+                        badge.style.display = 'inline-block';
+                    } else {
+                        badge.style.display = 'none';
+                    }
+                }
+
+                if (list.length === 0) {
+                    container.innerHTML = '<div class="p-3 text-center text-muted small">No unread notifications</div>';
+                    return;
+                }
+
+                container.innerHTML = list.map(item => `
+                    <div class="p-3 border-bottom notification-item bg-white hover-light" data-id="${item.id}" style="cursor: pointer;">
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <strong class="small text-dark d-block">${item.title}</strong>
+                            <span class="badge bg-light text-secondary border" style="font-size: 0.65rem;">${item.type || 'info'}</span>
+                        </div>
+                        <p class="small text-muted mb-1 mt-1">${item.message}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted" style="font-size: 0.7rem;">${item.created_at || ''}</span>
+                            ${item.link ? `<a href="${item.link}" class="btn btn-sm btn-link p-0 text-primary small text-decoration-none view-notif-link">View &rarr;</a>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+
+                container.querySelectorAll('.notification-item').forEach(el => {
+                    el.addEventListener('click', async (e) => {
+                        const id = el.dataset.id;
+                        await fetch(`/api/notifications/${id}/read`, { method: 'POST' });
+                        loadNotifications();
+                    });
+                });
+            } catch (err) {
+                // silent
+            }
+        }
+
+        if (markAllBtn) {
+            markAllBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await fetch('/api/notifications/read-all', { method: 'POST' });
+                loadNotifications();
+            });
+        }
+
+        loadNotifications();
+    });
+    </script>
     <?= \App\Services\SentryService::renderBrowserScript() ?>
 
 </body>
