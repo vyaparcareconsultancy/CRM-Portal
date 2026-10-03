@@ -420,6 +420,13 @@ $router->post('/api/reminder-rules/{id}/toggle', [\App\Controllers\ReminderContr
 $router->delete('/api/reminder-rules/{id}', [\App\Controllers\ReminderController::class, 'apiDeleteRule'], ['throttle:60,1', AuthMiddleware::class, 'perm:reminder.manage']);
 $router->post('/api/reminder-rules/{id}/delete', [\App\Controllers\ReminderController::class, 'apiDeleteRule'], ['throttle:60,1', AuthMiddleware::class, 'perm:reminder.manage']);
 
+// Phase 8: Reports & Analytics Web View
+$router->get('/reports', [\App\Controllers\ReportController::class, 'index'], [AuthMiddleware::class, 'perm:report.view_financial|report.view_academic|report.view_leads']);
+
+// Phase 8: Reports API & Export
+$router->get('/api/reports/data', [\App\Controllers\ReportController::class, 'apiData'], ['throttle:120,1', AuthMiddleware::class, 'perm:report.view_financial|report.view_academic|report.view_leads']);
+$router->get('/api/reports/export', [\App\Controllers\ReportController::class, 'export'], ['throttle:60,1', AuthMiddleware::class, 'perm:report.view_financial|report.view_academic|report.view_leads']);
+
 // Root redirect to dashboard or login
 $router->get('/', static function (): void {
     Response::redirect('/login');

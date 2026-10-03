@@ -137,6 +137,14 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
                         <span><?= can('student.manage') ? 'Admissions & Students' : 'My Students' ?></span>
                     </a>
                 </li>
+                <?php if (can('report.view_financial') || can('report.view_academic') || can('report.view_leads')): ?>
+                <li class="menu-label">Reports & Analytics</li>
+                <li>
+                    <a href="/reports" class="sidebar-link <?= ($currentPath ?? '') === '/reports' ? 'active' : '' ?>">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                        <span>Reports & Analytics</span>
+                    </a>
+                </li>
                 <?php endif; ?>
 
                 <?php if (can('user.manage')): ?>
