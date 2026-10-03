@@ -81,6 +81,15 @@
                     <span class="badge bg-secondary-subtle text-secondary ms-1" id="followUpsCountBadge">0</span>
                 </button>
             </li>
+            <?php if (can('payment.view')): ?>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link fw-semibold d-flex align-items-center gap-2 py-2 px-3" id="tab-billing-btn" data-bs-toggle="pill" data-bs-target="#tab-billing-pane" type="button" role="tab">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    <span>Billing & Ledger</span>
+                    <span class="badge bg-danger text-white ms-1" id="clientBalanceDueBadge" style="display: none;">₹0</span>
+                </button>
+            </li>
+            <?php endif; ?>
         </ul>
 
         <div class="row g-4">
@@ -371,6 +380,98 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- TAB 6: BILLING & LEDGER -->
+                    <?php if (can('payment.view')): ?>
+                    <div class="tab-pane fade" id="tab-billing-pane" role="tabpanel">
+                        <!-- Summary Cards -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-sm-4">
+                                <div class="card shadow-sm border-0 bg-white p-3">
+                                    <small class="text-muted text-uppercase fw-semibold">Total Invoiced</small>
+                                    <h4 class="fw-bold text-dark mb-0 mt-1" id="clientLedgerTotalInvoiced">₹0.00</h4>
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="card shadow-sm border-0 bg-white p-3">
+                                    <small class="text-muted text-uppercase fw-semibold">Total Paid</small>
+                                    <h4 class="fw-bold text-success mb-0 mt-1" id="clientLedgerTotalPaid">₹0.00</h4>
+                                </div>
+                            </div>
+                            <div class="col-sm-4">
+                                <div class="card shadow-sm border-0 bg-white p-3">
+                                    <small class="text-muted text-uppercase fw-semibold">Balance Due</small>
+                                    <h4 class="fw-bold text-danger mb-0 mt-1" id="clientLedgerBalanceDue">₹0.00</h4>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Invoices Section -->
+                        <div class="card shadow-sm border-0 mb-4">
+                            <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                                <h6 class="fw-bold mb-0 text-primary">Invoices & Fee Records</h6>
+                                <?php if (can('invoice.manage')): ?>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="openClientNewInvoiceBtn" data-bs-toggle="modal" data-bs-target="#clientNewInvoiceModal">
+                                    + Create Invoice
+                                </button>
+                                <?php endif; ?>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table align-middle mb-0" id="clientInvoicesTable">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Invoice No</th>
+                                                <th>Title</th>
+                                                <th class="text-end">Net Amount</th>
+                                                <th class="text-end">Paid</th>
+                                                <th class="text-end">Balance Due</th>
+                                                <th>Due Date</th>
+                                                <th>Status</th>
+                                                <th class="text-end">Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="clientInvoicesTableBody">
+                                            <tr><td colspan="8" class="text-center py-4 text-muted">Loading invoices...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Payments Section -->
+                        <div class="card shadow-sm border-0 mb-4">
+                            <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                                <h6 class="fw-bold mb-0 text-primary">Payment Receipts & History</h6>
+                                <?php if (can('payment.record')): ?>
+                                <button type="button" class="btn btn-sm btn-primary" id="openClientRecordPaymentBtn" data-bs-toggle="modal" data-bs-target="#clientRecordPaymentModal">
+                                    + Record Payment
+                                </button>
+                                <?php endif; ?>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table align-middle mb-0" id="clientPaymentsTable">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Receipt No</th>
+                                                <th>Date</th>
+                                                <th class="text-end">Amount</th>
+                                                <th>Mode</th>
+                                                <th>Reference No</th>
+                                                <th>Received By</th>
+                                                <th class="text-end">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="clientPaymentsTableBody">
+                                            <tr><td colspan="7" class="text-center py-4 text-muted">Loading payments...</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
 
                 </div>
             </div>

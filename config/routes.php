@@ -315,7 +315,34 @@ $router->post('/api/clients/{id}/work-tracker/{trackerId}', [\App\Controllers\Cl
 $router->delete('/api/clients/{id}/work-tracker/{trackerId}', [\App\Controllers\ClientComplianceController::class, 'deleteWorkTracker'], ['throttle:120,1', AuthMiddleware::class, 'perm:client_service.manage|client.edit']);
 $router->post('/api/clients/{id}/work-tracker/{trackerId}/delete', [\App\Controllers\ClientComplianceController::class, 'deleteWorkTracker'], ['throttle:120,1', AuthMiddleware::class, 'perm:client_service.manage|client.edit']);
 
+// Phase 4: Invoices & Billing
+$router->get('/api/invoices', [\App\Controllers\InvoiceController::class, 'apiList'], ['throttle:120,1', AuthMiddleware::class, 'perm:payment.view|invoice.manage']);
+$router->post('/api/invoices', [\App\Controllers\InvoiceController::class, 'apiStore'], ['throttle:120,1', AuthMiddleware::class, 'perm:invoice.manage']);
+$router->get('/api/invoices/{id}', [\App\Controllers\InvoiceController::class, 'apiShow'], ['throttle:120,1', AuthMiddleware::class, 'perm:payment.view|invoice.manage']);
+$router->put('/api/invoices/{id}', [\App\Controllers\InvoiceController::class, 'apiUpdate'], ['throttle:120,1', AuthMiddleware::class, 'perm:invoice.manage']);
+$router->post('/api/invoices/{id}', [\App\Controllers\InvoiceController::class, 'apiUpdate'], ['throttle:120,1', AuthMiddleware::class, 'perm:invoice.manage']);
+$router->delete('/api/invoices/{id}', [\App\Controllers\InvoiceController::class, 'apiDelete'], ['throttle:120,1', AuthMiddleware::class, 'perm:invoice.manage']);
+$router->post('/api/invoices/{id}/delete', [\App\Controllers\InvoiceController::class, 'apiDelete'], ['throttle:120,1', AuthMiddleware::class, 'perm:invoice.manage']);
+
+// Phase 4: Payments & Receipts
+$router->get('/payments', [\App\Controllers\PaymentController::class, 'index'], [AuthMiddleware::class, 'perm:payment.view']);
+$router->get('/payments/{id}/receipt', [\App\Controllers\PaymentController::class, 'downloadReceipt'], [AuthMiddleware::class, 'perm:payment.view']);
+$router->get('/api/payments', [\App\Controllers\PaymentController::class, 'apiList'], ['throttle:120,1', AuthMiddleware::class, 'perm:payment.view']);
+$router->post('/api/payments', [\App\Controllers\PaymentController::class, 'apiStore'], ['throttle:120,1', AuthMiddleware::class, 'perm:payment.record']);
+$router->get('/api/payments/{id}', [\App\Controllers\PaymentController::class, 'apiShow'], ['throttle:120,1', AuthMiddleware::class, 'perm:payment.view']);
+$router->put('/api/payments/{id}', [\App\Controllers\PaymentController::class, 'apiUpdate'], ['throttle:120,1', AuthMiddleware::class, 'perm:payment.manage']);
+$router->post('/api/payments/{id}', [\App\Controllers\PaymentController::class, 'apiUpdate'], ['throttle:120,1', AuthMiddleware::class, 'perm:payment.manage']);
+$router->delete('/api/payments/{id}', [\App\Controllers\PaymentController::class, 'apiDelete'], ['throttle:120,1', AuthMiddleware::class, 'perm:payment.manage']);
+$router->post('/api/payments/{id}/delete', [\App\Controllers\PaymentController::class, 'apiDelete'], ['throttle:120,1', AuthMiddleware::class, 'perm:payment.manage']);
+$router->get('/api/payments/{id}/receipt', [\App\Controllers\PaymentController::class, 'downloadReceipt'], ['throttle:60,1', AuthMiddleware::class, 'perm:payment.view']);
+$router->post('/api/payments/{id}/email-receipt', [\App\Controllers\PaymentController::class, 'emailReceipt'], ['throttle:60,1', AuthMiddleware::class, 'perm:payment.view']);
+
+// Phase 4: Financial Ledgers
+$router->get('/api/clients/{id}/ledger', [\App\Controllers\PaymentController::class, 'apiClientLedger'], ['throttle:120,1', AuthMiddleware::class, 'perm:payment.view']);
+$router->get('/api/students/{id}/ledger', [\App\Controllers\PaymentController::class, 'apiStudentLedger'], ['throttle:120,1', AuthMiddleware::class, 'perm:payment.view']);
+
 // Root redirect to dashboard or login
 $router->get('/', static function (): void {
     Response::redirect('/login');
 });
+

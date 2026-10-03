@@ -646,6 +646,112 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ==========================================
+    // 4. Client Financial Ledger (Phase 4)
+    // ==========================================
+
+    async function loadClientLedger() {
+        try {
+            const res = await fetch(`/api/clients/${clientId}/ledger`);
+            const data = await res.json();
+            if (data.status === 'success') {
+                renderClientLedger(data.data);
+            }
+        } catch (err) {
+            console.error('Failed to load client ledger:', err);
+        }
+    }
+
+    function renderClientLedger(ledger) {
+        if (!ledger) return;
+
+        const summary = ledger.summary || {};
+        const totalInvoicedEl = document.getElementById('clientLedgerTotalInvoiced');
+        const totalPaidEl = document.getElementById('clientLedgerTotalPaid');
+        const balanceDueEl = document.getElementById('clientLedgerBalanceDue');
+        const balanceBadge = document.getElementById('clientBalanceDueBadge');
+
+        const bal = parseFloat(summary.balance_due || 0);
+
+        if (totalInvoicedEl) totalInvoicedEl.textContent = '₹' + parseFloat(summary.total_invoiced || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+        if (totalPaidEl) totalPaidEl.textContent = '₹' + parseFloat(summary.total_paid || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 });
+        if (balanceDueEl) balanceDueEl.textContent = '₹' + bal.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+
+        if (balanceBadge) {
+            if (bal > 0) {
+                balanceBadge.style.display = 'inline-block';
+                balanceBadge.textContent = '₹' + Math.round(bal) + ' Due';
+            } else {
+                balanceBadge.style.display = 'none';
+            }
+        }
+
+        // Render Invoices Table
+        const invTbody = document.getElementById('clientInvoicesTableBody');
+        if (invTbody) {
+            const invoices = ledger.invoices || [];
+            if (invoices.length === 0) {
+                invTbody.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-muted">No invoices billed to this client yet.</td></tr>';
+            } else {
+                invTbody.innerHTML = invoices.map(inv => {
+                    const statusClassMap = {
+                        'paid': 'bg-success-subtle text-success border border-success-subtle',
+                        'partially_paid': 'bg-warning-subtle text-warning-emphasis border border-warning-subtle',
+                        'unpaid': 'bg-secondary-subtle text-secondary border border-secondary-subtle',
+                        'overdue': 'bg-danger-subtle text-danger border border-danger-subtle',
+                        'cancelled': 'bg-dark-subtle text-muted border border-dark-subtle'
+                    };
+                    const badgeClass = statusClassMap[inv.status] || 'bg-secondary';
+                    const balDue = parseFloat(inv.balance_amount || 0);
+
+                    return `
+                        <tr>
+                            <td><strong>${escapeHtml(inv.invoice_no)}</strong></td>
+                            <td>${escapeHtml(inv.title || inv.service_name || '-')}</td>
+                            <td class="text-end fw-semibold">₹${parseFloat(inv.net_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                            <td class="text-end text-success">₹${parseFloat(inv.paid_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                            <td class="text-end fw-bold ${balDue > 0 ? 'text-danger' : 'text-muted'}">₹${balDue.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                            <td class="text-nowrap small">${escapeHtml(inv.due_date)}</td>
+                            <td><span class="badge ${badgeClass} text-capitalize px-2 py-1">${escapeHtml(inv.status.replace('_', ' '))}</span></td>
+                            <td class="text-end text-nowrap">
+                                <a href="/payments" class="btn btn-sm btn-outline-primary py-0 px-2" title="View in payments ledger">View</a>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        // Render Payments Table
+        const pmtTbody = document.getElementById('clientPaymentsTableBody');
+        if (pmtTbody) {
+            const payments = ledger.payments || [];
+            if (payments.length === 0) {
+                pmtTbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No payments recorded from this client yet.</td></tr>';
+            } else {
+                pmtTbody.innerHTML = payments.map(p => `
+                    <tr>
+                        <td><strong class="text-primary">${escapeHtml(p.receipt_no)}</strong></td>
+                        <td class="text-nowrap small">${escapeHtml(p.payment_date)}</td>
+                        <td class="text-end fw-bold text-success">₹${parseFloat(p.amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        <td><span class="badge bg-light text-uppercase border">${escapeHtml(p.payment_mode)}</span></td>
+                        <td><small class="text-muted font-monospace">${escapeHtml(p.reference_no || '-')}</small></td>
+                        <td><small class="text-secondary">${escapeHtml(p.received_by_name || 'Accounts')}</small></td>
+                        <td class="text-end text-nowrap">
+                            <a href="/payments/${p.id}/receipt" target="_blank" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Download Receipt PDF">
+                                PDF
+                            </a>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+    }
+
+    document.getElementById('tab-billing-btn')?.addEventListener('shown.bs.tab', () => {
+        loadClientLedger();
+    });
+
     function escapeHtml(text) {
         if (!text) return '';
         return String(text)
@@ -656,9 +762,11 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/'/g, '&#039;');
     }
 
-    // Initialize all Phase 3 sections
+    // Initialize all Phase 3 & 4 sections
     loadLookups();
     loadClientServices();
     loadComplianceDetails();
     loadWorkTracker();
+    loadClientLedger();
 });
+

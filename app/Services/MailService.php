@@ -179,4 +179,99 @@ class MailService
 
         return false;
     }
+
+    /**
+     * Send payment receipt email with PDF attachment.
+     */
+    public static function sendPaymentReceipt(
+        string $toEmail,
+        string $recipientName,
+        array $payment,
+        array $invoice,
+        string $pdfData
+    ): bool {
+        $appDebug = filter_var($_ENV['APP_DEBUG'] ?? 'false', FILTER_VALIDATE_BOOLEAN);
+        $mailHost = $_ENV['MAIL_HOST'] ?? '';
+        $fromAddress = $_ENV['MAIL_FROM_ADDRESS'] ?? 'accounts@crm.local';
+        $fromName = $_ENV['MAIL_FROM_NAME'] ?? 'Accounts Department';
+
+        $isConfigured = !empty($mailHost)
+            && $mailHost !== 'null'
+            && !empty($_ENV['MAIL_USERNAME'])
+            && $_ENV['MAIL_USERNAME'] !== 'null';
+
+        $receiptNo = $payment['receipt_no'] ?? 'REC-XXXX';
+        $amount = number_format((float)($payment['amount'] ?? 0), 2);
+        $subject = "Payment Receipt: {$receiptNo} [INR {$amount}]";
+
+        $htmlBody = "
+            <div style='font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px;'>
+                <h2 style='color: #0f2c59; margin-top: 0;'>Payment Receipt Confirmation</h2>
+                <p>Dear <strong>" . htmlspecialchars($recipientName) . "</strong>,</p>
+                <p>Thank you for your payment. We have received your payment with the following details:</p>
+                <table style='width: 100%; border-collapse: collapse; margin: 20px 0;'>
+                    <tr><td style='padding: 8px; border-bottom: 1px solid #edf2f7; color: #718096;'>Receipt Number:</td><td style='padding: 8px; border-bottom: 1px solid #edf2f7; font-weight: bold;'>{$receiptNo}</td></tr>
+                    <tr><td style='padding: 8px; border-bottom: 1px solid #edf2f7; color: #718096;'>Payment Date:</td><td style='padding: 8px; border-bottom: 1px solid #edf2f7;'>" . htmlspecialchars($payment['payment_date'] ?? date('Y-m-d')) . "</td></tr>
+                    <tr><td style='padding: 8px; border-bottom: 1px solid #edf2f7; color: #718096;'>Payment Mode:</td><td style='padding: 8px; border-bottom: 1px solid #edf2f7; text-transform: uppercase;'>" . htmlspecialchars($payment['payment_mode'] ?? 'cash') . "</td></tr>
+                    <tr><td style='padding: 8px; border-bottom: 1px solid #edf2f7; color: #718096;'>Amount Paid:</td><td style='padding: 8px; border-bottom: 1px solid #edf2f7; font-weight: bold; color: #276749;'>INR {$amount}</td></tr>
+                    <tr><td style='padding: 8px; border-bottom: 1px solid #edf2f7; color: #718096;'>Invoice Reference:</td><td style='padding: 8px; border-bottom: 1px solid #edf2f7;'>" . htmlspecialchars($invoice['invoice_no'] ?? 'N/A') . " (" . htmlspecialchars($invoice['title'] ?? '') . ")</td></tr>
+                </table>
+                <p>Please find your official PDF payment receipt attached to this email.</p>
+                <p style='color: #718096; font-size: 13px; margin-top: 30px;'>Best Regards,<br>Accounts & Finance Team</p>
+            </div>
+        ";
+
+        $altBody = "Dear {$recipientName},\n\nThank you for your payment of INR {$amount} (Receipt: {$receiptNo}) against invoice " . ($invoice['invoice_no'] ?? '') . ".\nYour official PDF receipt is attached.\n\nBest Regards,\nAccounts Team";
+
+        if ($isConfigured && class_exists(\PHPMailer\PHPMailer\PHPMailer::class)) {
+            try {
+                $mail = new \PHPMailer\PHPMailer\PHPMailer(true);
+                $mail->isSMTP();
+                $mail->Host = (string)$mailHost;
+                $mail->Port = (int)($_ENV['MAIL_PORT'] ?? 587);
+
+                if (!empty($_ENV['MAIL_USERNAME']) && $_ENV['MAIL_USERNAME'] !== 'null') {
+                    $mail->SMTPAuth = true;
+                    $mail->Username = (string)$_ENV['MAIL_USERNAME'];
+                    $mail->Password = (string)($_ENV['MAIL_PASSWORD'] ?? '');
+                } else {
+                    $mail->SMTPAuth = false;
+                }
+
+                $encryption = strtolower((string)($_ENV['MAIL_ENCRYPTION'] ?? ''));
+                if ($encryption === 'tls') {
+                    $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+                } elseif ($encryption === 'ssl') {
+                    $mail->SMTPSecure = \PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS;
+                }
+
+                $mail->setFrom($fromAddress, $fromName);
+                $mail->addAddress($toEmail, $recipientName);
+                $mail->isHTML(true);
+                $mail->Subject = $subject;
+                $mail->Body = $htmlBody;
+                $mail->AltBody = $altBody;
+
+                if (!empty($pdfData)) {
+                    $mail->addStringAttachment($pdfData, "Receipt-{$receiptNo}.pdf", 'base64', 'application/pdf');
+                }
+
+                $mail->send();
+                return true;
+            } catch (Throwable $e) {
+                Logger::error("Failed to send payment receipt email to {$toEmail}: " . $e->getMessage());
+            }
+        }
+
+        if ($appDebug || !$isConfigured) {
+            Logger::info("[DEV EMAIL] Payment receipt sent to {$toEmail} (Receipt: {$receiptNo}, Amount: INR {$amount})", [
+                'recipient' => $toEmail,
+                'receipt_no' => $receiptNo,
+                'amount' => $amount,
+            ]);
+            return true;
+        }
+
+        return false;
+    }
 }
