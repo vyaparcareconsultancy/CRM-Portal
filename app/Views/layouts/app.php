@@ -69,7 +69,7 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
                 <?php endif; ?>
                 <?php endif; ?>
 
-                <?php if (can('followup.manage') || can('reminder.view') || can('reminder.manage')): ?>
+                <?php if (can('followup.manage') || can('reminder.view') || can('reminder.manage') || can('message.send') || can('lead.manage') || can('client.manage')): ?>
                 <li class="menu-label">Activity & Deadlines</li>
                 <?php if (can('followup.manage')): ?>
                 <li>
@@ -117,7 +117,7 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
                 </li>
                 <?php endif; ?>
 
-                <?php if (can('batch.view_assigned') || can('batch.manage') || can('student.manage') || can('student.view') || can('attendance.view')): ?>
+                <?php if (can('batch.view_assigned') || can('batch.manage') || can('student.manage') || can('student.view') || can('attendance.view') || can('course.manage')): ?>
                 <li class="menu-label">Training Academy</li>
                 <?php if (can('course.manage') || can('student.manage')): ?>
                 <li>
@@ -127,24 +127,31 @@ $currentPath = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';
                     </a>
                 </li>
                 <?php endif; ?>
+                <?php if (can('batch.manage') || can('batch.view_assigned')): ?>
                 <li>
                     <a href="/batches" class="sidebar-link <?= ($currentPath ?? '') === '/batches' ? 'active' : '' ?>">
                         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                         <span><?= can('batch.manage') ? 'Batches & Schedules' : 'My Batches' ?></span>
                     </a>
                 </li>
+                <?php endif; ?>
+                <?php if (can('attendance.view') || can('attendance.manage') || can('batch.view_assigned')): ?>
                 <li>
                     <a href="/attendance" class="sidebar-link <?= ($currentPath ?? '') === '/attendance' ? 'active' : '' ?>">
                         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
                         <span>Attendance</span>
                     </a>
                 </li>
+                <?php endif; ?>
+                <?php if (can('student.manage') || can('student.view') || can('student.view_assigned')): ?>
                 <li>
                     <a href="/students" class="sidebar-link <?= ($currentPath ?? '') === '/students' ? 'active' : '' ?>">
                         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 14l9-5-9-5-9 5 9 5z"/><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
                         <span><?= can('student.manage') ? 'Admissions & Students' : 'My Students' ?></span>
                     </a>
                 </li>
+                <?php endif; ?>
+                <?php endif; ?>
                 <?php if (can('report.view_financial') || can('report.view_academic') || can('report.view_leads')): ?>
                 <li class="menu-label">Reports & Analytics</li>
                 <li>

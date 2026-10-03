@@ -32,7 +32,7 @@ class ReportController
         $userRole = (string)Session::get('role', 'counselor');
         $lookups = $this->reportService->getFilterLookups();
 
-        View::render('reports/index', [
+        Response::view('reports/index', [
             'pageTitle' => 'Reports & Performance Analytics',
             'currentPath' => '/reports',
             'userRole' => $userRole,

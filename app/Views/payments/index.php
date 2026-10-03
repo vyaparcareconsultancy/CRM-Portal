@@ -377,4 +377,3 @@ require_once __DIR__ . '/../layouts/app.php';
 
 <script src="/assets/js/payments.js"></script>
 
-<?php require_once __DIR__ . '/../layouts/footer.php'; ?>

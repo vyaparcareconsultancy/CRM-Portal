@@ -148,7 +148,8 @@ php cron/mark_missed.php                 # Mark overdue follow-ups (daily 11 PM)
 bash scripts/backup.sh                   # Database + uploads backup
 # See scripts/restore.md for recovery steps
 
-# Testing
+# Testing & Quality
+bash scripts/lint.sh                     # Check syntax on all PHP files (exits non-zero on error)
 composer test                            # PHPStan + PHPUnit + Playwright
 ```
 
@@ -191,7 +192,8 @@ CRM/
 │   ├── index.php             # Single entry point
 │   ├── .htaccess             # Apache rewrite rules
 │   └── assets/               # CSS, JS, vendor libraries
-├── scripts/                  # DevOps scripts
+├── scripts/                  # DevOps & utility scripts
+│   ├── lint.sh               # Syntax linter (php -l on all PHP files)
 │   ├── backup.sh             # Automated backup
 │   ├── deploy_remote.sh      # Atomic deployment
 │   ├── rollback.sh           # Release rollback
